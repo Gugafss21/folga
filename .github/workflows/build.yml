@@ -1,0 +1,36 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Testes
+        run: dotnet test --project tests/Folga.Core.Tests -c Release
+
+      - name: Publicar .exe único
+        run: >
+          dotnet publish src/Folga.App -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:DebugType=none -o publish
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Folga
+          path: publish/Folga.exe
+
+      - name: Release (em tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/Folga.exe

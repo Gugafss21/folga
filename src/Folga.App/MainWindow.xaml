@@ -1,0 +1,46 @@
+<Window x:Class="Folga.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Folga.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        Title="Folga" Width="1120" Height="760" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontBody}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="208" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Menu lateral -->
+        <DockPanel Grid.Column="0">
+            <StackPanel DockPanel.Dock="Top" Margin="20,20,20,20" Orientation="Horizontal">
+                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,2,10,0" />
+                <TextBlock Text="Folga" Style="{StaticResource Text.Title}" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,16">
+                <Button Content="Restaurar tudo" Style="{StaticResource Button.Link}" HorizontalAlignment="Left"
+                        Command="{Binding RestoreAllCommand}" ToolTip="Desfaz todas as alterações, inclusive o IFEO, e desliga o boost" />
+                <TextBlock Text="{Binding Version}" Style="{StaticResource Text.Label}" Margin="8,4,0,0" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
+                     ItemContainerStyle="{StaticResource NavItem}" Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <Rectangle Grid.Column="1" Width="1" Fill="{StaticResource LineBrush}" />
+
+        <ContentControl Grid.Column="2" Content="{Binding SelectedPage.ViewModel}" Margin="28,24,28,20" Focusable="False" />
+    </Grid>
+</Window>

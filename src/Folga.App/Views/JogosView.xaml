@@ -1,0 +1,53 @@
+<UserControl x:Class="Folga.App.Views.JogosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:JogosViewModel}">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+            <TextBlock Text="Jogos" Style="{StaticResource Text.Headline}" />
+            <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                       Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe)." />
+        </StackPanel>
+
+        <!-- Adicionar a partir de um app aberto -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Adicionar um jogo aberto" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
+                <Button DockPanel.Dock="Right" Content="Adicionar" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
+                        Command="{Binding AddRunningCommand}" />
+                <Button DockPanel.Dock="Right" Content="Atualizar lista" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
+                        Command="{Binding RefreshRunningCommand}" />
+                <ComboBox ItemsSource="{Binding Running}" SelectedItem="{Binding SelectedRunning}" DisplayMemberPath="Label"
+                          ToolTip="Abra o jogo, clique em Atualizar lista e escolha a janela dele" />
+            </DockPanel>
+        </Border>
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Left" Content="Novo" Style="{StaticResource Button.Plain}" Command="{Binding AddCommand}" />
+            <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0" />
+            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}" />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
+        </DockPanel>
+
+        <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
+            <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64" />
+                <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*" />
+                <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"
+                                        ItemsSource="{x:Static vm:Choices.GamePriorities}"
+                                        SelectedValuePath="Value" DisplayMemberPath="Label"
+                                        SelectedValueBinding="{Binding Priority}" />
+                <DataGridComboBoxColumn Header="Núcleos" Width="1.4*"
+                                        ItemsSource="{x:Static vm:Choices.GameCoreModes}"
+                                        SelectedValuePath="Value" DisplayMemberPath="Label"
+                                        SelectedValueBinding="{Binding Cores}" />
+                <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

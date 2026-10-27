@@ -1,0 +1,28 @@
+<Application x:Class="Folga.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:views="clr-namespace:Folga.App.Views"
+             ShutdownMode="OnExplicitShutdown"
+             ThemeMode="Dark">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Theme/Tokens.xaml" />
+                <ResourceDictionary Source="Theme/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+            <DataTemplate DataType="{x:Type vm:AgoraViewModel}">
+                <views:AgoraView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:JogosViewModel}">
+                <views:JogosView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:SegundoPlanoViewModel}">
+                <views:SegundoPlanoView />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

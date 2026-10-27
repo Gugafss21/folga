@@ -1,0 +1,88 @@
+using System.IO.Enumeration;
+
+namespace Folga.Core.Profiles;
+
+public enum PriorityLevel { Idle, BelowNormal, Normal, AboveNormal, High }
+
+/// <summary>Onde ficam os apps de fundo durante o jogo.</summary>
+public enum BackgroundCores
+{
+    /// <summary>Sem restrição de núcleos.</summary>
+    All,
+    /// <summary>Núcleos E em CPU híbrida; senão, o último núcleo.</summary>
+    Auto,
+    LastCore,
+    LastTwoCores,
+}
+
+public enum GameCores
+{
+    /// <summary>O jogo pode usar todos os núcleos (padrão).</summary>
+    All,
+    /// <summary>O jogo fica só com os núcleos que não foram dados ao fundo.</summary>
+    ExcludeBackground,
+}
+
+public sealed class GameProfile
+{
+    public string Name { get; set; } = "";
+    public List<string> Executables { get; set; } = [];
+    public bool Enabled { get; set; } = true;
+    public PriorityLevel Priority { get; set; } = PriorityLevel.High;
+    public GameCores Cores { get; set; } = GameCores.All;
+
+    /// <summary>Se o anti-cheat negar acesso, grava a prioridade no IFEO (vale na próxima abertura).</summary>
+    public bool UseIfeoFallback { get; set; } = true;
+
+    public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
+}
+
+public sealed class BackgroundRule
+{
+    public string Name { get; set; } = "";
+    public List<string> Executables { get; set; } = [];
+    public bool Enabled { get; set; } = true;
+    public PriorityLevel? Priority { get; set; } = PriorityLevel.BelowNormal;
+    public BackgroundCores Cores { get; set; } = BackgroundCores.Auto;
+    public bool EcoQos { get; set; } = true;
+    public bool LowIoPriority { get; set; } = true;
+    public bool LowMemoryPriority { get; set; } = true;
+
+    /// <summary>Orçamento de RAM somando todos os processos do app; acima dele os maiores são esvaziados. 0 = sem orçamento.</summary>
+    public int MemoryBudgetMb { get; set; }
+
+    /// <summary>Teto rígido de working set por processo (pagina para o disco, não derruba). 0 = desligado.</summary>
+    public int HardWorkingSetCapMb { get; set; }
+
+    public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
+}
+
+public sealed class MemorySettings
+{
+    public bool PurgeStandbyList { get; set; } = true;
+    public int FreeThresholdMb { get; set; } = 1024;
+    public int StandbyMinimumMb { get; set; } = 1024;
+    public int PurgeCooldownSeconds { get; set; } = 60;
+    public int GovernorIntervalSeconds { get; set; } = 5;
+}
+
+public sealed class FolgaConfig
+{
+    public int Version { get; set; } = 1;
+    public bool BoostEnabled { get; set; } = true;
+    public List<GameProfile> Games { get; set; } = [];
+    public List<BackgroundRule> Background { get; set; } = [];
+    public MemorySettings Memory { get; set; } = new();
+
+    public GameProfile? FindGame(string exe) => Games.FirstOrDefault(g => g.Matches(exe));
+    public BackgroundRule? FindRule(string exe) => Background.FirstOrDefault(r => r.Matches(exe));
+}
+
+public static class ExeMatcher
+{
+    /// <summary>Compara o nome do .exe com um padrão simples (aceita * e ?), sem diferenciar maiúsculas.</summary>
+    public static bool Matches(string pattern, string exe) =>
+        !string.IsNullOrWhiteSpace(pattern) && FileSystemName.MatchesSimpleExpression(pattern.Trim(), exe, ignoreCase: true);
+
+    public static bool MatchesAny(IEnumerable<string> patterns, string exe) => patterns.Any(p => Matches(p, exe));
+}
