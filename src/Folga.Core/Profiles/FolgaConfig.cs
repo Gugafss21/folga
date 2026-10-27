@@ -37,6 +37,9 @@ public sealed class GameProfile
     /// <summary>Marca o tráfego do jogo com DSCP 46 (prioridade de voz). Só ajuda se o roteador respeitar QoS.</summary>
     public bool MarkDscp { get; set; }
 
+    /// <summary>Perfil criado pela detecção automática (tela cheia + DirectX), não à mão.</summary>
+    public bool AutoDetected { get; set; }
+
     public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
 }
 
@@ -81,10 +84,25 @@ public sealed class NetworkSettings
     public bool PauseWindowsUpdate { get; set; } = true;
 }
 
+public sealed class AutoDetectSettings
+{
+    /// <summary>Trata como jogo o app em primeiro plano que cobre o monitor e desenha com DirectX.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Quanto tempo a tela cheia precisa ficar estável antes de virar jogo (evita alarme com algo maximizado de relance).</summary>
+    public int ConfirmSeconds { get; set; } = 10;
+
+    /// <summary>FPS mínimo pelo DirectX para confirmar (só com admin). Players de vídeo ficam em 24–30.</summary>
+    public int MinFps { get; set; } = 20;
+
+    /// <summary>Nunca tratar como jogo. Apps com regra de segundo plano também ficam de fora.</summary>
+    public List<string> Exclusions { get; set; } = [.. DefaultConfig.AutoDetectExclusions];
+}
+
 public sealed class FolgaConfig
 {
     /// <summary>Versão do formato; arquivos antigos são migrados em <see cref="ConfigStore.Load"/>.</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int Version { get; set; } = 1;
     public bool BoostEnabled { get; set; } = true;
@@ -92,9 +110,16 @@ public sealed class FolgaConfig
     public List<BackgroundRule> Background { get; set; } = [];
     public MemorySettings Memory { get; set; } = new();
     public NetworkSettings Network { get; set; } = new();
+    public AutoDetectSettings AutoDetect { get; set; } = new();
 
     public GameProfile? FindGame(string exe) => Games.FirstOrDefault(g => g.Matches(exe));
     public BackgroundRule? FindRule(string exe) => Background.FirstOrDefault(r => r.Matches(exe));
+
+    /// <summary>O .exe já tem perfil, ativo ou não (desativado = o usuário não quer boost nele).</summary>
+    public bool IsKnownGame(string exe) => Games.Any(g => ExeMatcher.MatchesAny(g.Executables, exe));
+
+    public bool IsExcludedFromAutoDetect(string exe) =>
+        ExeMatcher.MatchesAny(AutoDetect.Exclusions, exe) || FindRule(exe) is not null;
 }
 
 public static class ExeMatcher

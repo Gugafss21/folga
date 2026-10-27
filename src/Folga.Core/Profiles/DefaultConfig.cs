@@ -30,6 +30,20 @@ public static class DefaultConfig
         ],
     };
 
+    /// <summary>
+    /// Apps que ficam em tela cheia sem ser jogo: navegadores, players, chamadas, apresentações, launchers e
+    /// o próprio Windows. Apps com regra de segundo plano já ficam de fora sem estar aqui.
+    /// </summary>
+    internal static readonly string[] AutoDetectExclusions =
+    [
+        "chrome.exe", "msedge.exe", "firefox.exe", "opera.exe", "brave.exe", "vivaldi.exe",
+        "vlc.exe", "mpc-hc*.exe", "mpc-be*.exe", "PotPlayer*.exe", "mpv.exe", "wmplayer.exe", "Video.UI.exe", "Microsoft.Media.Player.exe",
+        "Spotify.exe", "Netflix*.exe", "Discord.exe", "Teams.exe", "ms-teams.exe", "Zoom.exe", "obs64.exe",
+        "POWERPNT.EXE", "Code.exe", "devenv.exe",
+        "steam.exe", "steamwebhelper.exe", "EpicGamesLauncher.exe", "Battle.net.exe", "EADesktop.exe", "GalaxyClient.exe", "upc.exe",
+        "ApplicationFrameHost.exe", "msedgewebview2.exe", "Folga.exe",
+    ];
+
     /// <summary>Leva um config antigo ao formato atual sem perder o que o usuário mudou.</summary>
     public static bool Migrate(FolgaConfig config)
     {
@@ -44,6 +58,7 @@ public static class DefaultConfig
                 else if (rule.Executables.Any(e => e.Equals("OneDrive.exe", StringComparison.OrdinalIgnoreCase))) rule.UploadLimitKbps = SyncUploadKbps;
             }
         }
+        // v3: detecção automática. A seção ausente no arquivo já vem com o padrão (ligada, exclusões padrão).
         config.Version = FolgaConfig.CurrentVersion;
         return true;
     }

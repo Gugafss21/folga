@@ -52,6 +52,7 @@ public partial class App : Application
         var configIndex = Array.FindIndex(e.Args, a => a.Equals("--config", StringComparison.OrdinalIgnoreCase));
         _services = AppServices.Create(configIndex >= 0 && configIndex + 1 < e.Args.Length ? e.Args[configIndex + 1] : null);
         _services.Engine.Start();
+        _services.Detector.Start();
 
         var viewModel = new MainViewModel(_services);
         _window = new MainWindow { DataContext = viewModel };

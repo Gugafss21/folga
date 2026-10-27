@@ -123,6 +123,62 @@ internal static unsafe partial class Ntdll
     public static partial int NtResumeProcess(ProcessHandle process);
 }
 
+internal static unsafe partial class User32
+{
+    public const int GWL_STYLE = -16;
+    public const long WS_CAPTION = 0x00C00000;
+    public const uint MONITOR_DEFAULTTONEAREST = 2;
+    public static readonly nint DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetShellWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial uint GetWindowThreadProcessId(nint hwnd, out uint pid);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetWindowRect(nint hwnd, out RECT rect);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsIconic(nint hwnd);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static partial nint GetWindowLongPtr(nint hwnd, int index);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint MonitorFromWindow(nint hwnd, uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetMonitorInfo(nint monitor, ref MONITORINFO info);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW")]
+    public static partial int GetWindowText(nint hwnd, char* buffer, int maxCount);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint SetThreadDpiAwarenessContext(nint context);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct RECT
+{
+    public int Left, Top, Right, Bottom;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MONITORINFO
+{
+    public uint cbSize;
+    public RECT rcMonitor;
+    public RECT rcWork;
+    public uint dwFlags;
+}
+
 internal static partial class Advapi32
 {
     public const uint TOKEN_QUERY = 0x0008;

@@ -125,9 +125,10 @@ public sealed partial class AgoraViewModel : ObservableObject
         else
         {
             GameTitle = "Nenhum jogo aberto";
-            GameNote = state.Enabled
-                ? $"Esperando um destes: {string.Join(", ", _services.Engine.Config.Games.Where(g => g.Enabled).Select(g => g.Name))}."
-                : "Boost desligado: nada será alterado quando um jogo abrir.";
+            var listed = string.Join(", ", _services.Engine.Config.Games.Where(g => g.Enabled).Select(g => g.Name));
+            GameNote = !state.Enabled ? "Boost desligado: nada será alterado quando um jogo abrir."
+                : _services.Engine.Config.AutoDetect.Enabled ? $"Esperando {(listed.Length > 0 ? listed + " ou " : "")}qualquer jogo em tela cheia."
+                : $"Esperando um destes: {listed}.";
         }
 
         HeldText = state.SessionActive ? state.HeldProcesses.ToString(CultureInfo.CurrentCulture) : "—";
@@ -198,7 +199,7 @@ public sealed partial class AgoraViewModel : ObservableObject
 
         PingText = t.Ping?.RttMs is { } rtt ? rtt.ToString(CultureInfo.CurrentCulture) : "—";
         var notes = new[] { t.FpsNote, t.Ping is { RttMs: null } p ? "Ping: " + p.Status : null }.Where(n => n is not null);
-        TelemetryNote = IsSessionActive ? string.Join(" · ", notes) : "Os números do jogo aparecem quando um jogo da lista estiver aberto.";
+        TelemetryNote = IsSessionActive ? string.Join(" · ", notes) : "Os números do jogo aparecem quando um jogo estiver aberto.";
     }
 
     private static string Gb(long bytes) => (bytes / 1024d / 1024 / 1024).ToString("0.0", CultureInfo.CurrentCulture);

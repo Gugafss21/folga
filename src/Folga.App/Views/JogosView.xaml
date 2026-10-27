@@ -10,9 +10,22 @@
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
             <TextBlock Text="Jogos" Style="{StaticResource Text.Headline}" />
-            <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
-                       Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe)." />
+            <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe). Jogos fora da lista são achados sozinhos pela detecção automática." />
         </StackPanel>
+
+        <!-- Detecção automática -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
+            <StackPanel>
+                <CheckBox IsChecked="{Binding AutoDetectEnabled}" Content="Detectar jogos sozinho (tela cheia em primeiro plano + DirectX)"
+                          ToolTip="Ligado: um app em primeiro plano que cobre o monitor inteiro (tela cheia ou janela sem borda) por 10 s e desenha com DirectX a 20 FPS ou mais vira jogo: o boost liga e ele entra nesta lista como Detectado, para ser reconhecido na hora nas próximas vezes. Sem o Folga como administrador não dá para medir o DirectX, e aí valem só a tela cheia e as exclusões. Só salva com o botão Salvar." />
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="Nunca tratar como jogo" Style="{StaticResource Text.Label}" VerticalAlignment="Top" Margin="0,8,12,0" />
+                    <TextBox Text="{Binding ExclusionsText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
+                             ToolTip="Apps que ficam em tela cheia sem ser jogo: navegadores, players de vídeo, chamadas, apresentações, launchers. Separe por vírgula; aceita * (ex.: mpc-hc*.exe). Apps com regra em Segundo plano já ficam de fora sem estar aqui. Remover um jogo Detectado da lista o coloca aqui ao salvar." />
+                </DockPanel>
+            </StackPanel>
+        </Border>
 
         <!-- Adicionar a partir de um app aberto -->
         <Border DockPanel.Dock="Top" Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
@@ -35,7 +48,7 @@
             <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0"
                     ToolTip="Tira da lista o jogo selecionado. Só vale depois de Salvar." />
             <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
-                    ToolTip="Grava a lista e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
+                    ToolTip="Grava a lista, a detecção automática e as exclusões e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
         </DockPanel>
 
@@ -45,6 +58,8 @@
                                         v:Hint.Text="Desmarcado: o perfil fica guardado, mas o Folga ignora o jogo." />
                 <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"
                                     v:Hint.Text="Nome que aparece na tela Agora. Só para você identificar; não afeta a detecção." />
+                <DataGridTextColumn Header="Origem" Binding="{Binding Origin, Mode=OneWay}" IsReadOnly="True" Width="96"
+                                    v:Hint.Text="Manual: você adicionou. Detectado: o Folga achou em tela cheia e lembrou. Para o Folga não detectar de novo, remova (vai para as exclusões) ou desmarque Ativo." />
                 <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
                                     v:Hint.Text="Nome do .exe do jogo; vários separados por vírgula. * vale qualquer trecho (PioneerGame*.exe pega PioneerGame-Win64-Shipping.exe). Não diferencia maiúsculas. Dê dois cliques para editar." />
                 <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"

@@ -14,16 +14,22 @@ public sealed class EtwPresentMonitor : IDisposable
     private static readonly Guid Dxgi = new("ca11c036-0102-4a2d-a6ad-f03cfed5d3c9");
     private const ulong KeywordEvents = 0x2;
     private const int PresentStart = 42, PresentMultiplaneOverlayStart = 55;
-    private const string SessionName = "Folga-PresentWatch";
+    public const string DefaultSessionName = "Folga-PresentWatch";
 
     private readonly HashSet<int> _pids;
+    private readonly string _sessionName;
     private readonly object _gate = new();
     private readonly Dictionary<ulong, FrameStats> _bySwapChain = [];
     private TraceEventSession? _session;
     private Thread? _thread;
     private long _lastPresentTick;
 
-    public EtwPresentMonitor(IEnumerable<int> pids) => _pids = [.. pids];
+    /// <param name="sessionName">Nome da sessão ETW; dois monitores ao mesmo tempo precisam de nomes diferentes.</param>
+    public EtwPresentMonitor(IEnumerable<int> pids, string sessionName = DefaultSessionName)
+    {
+        _pids = [.. pids];
+        _sessionName = sessionName;
+    }
 
     public IReadOnlySet<int> Pids => _pids;
 
@@ -31,7 +37,7 @@ public sealed class EtwPresentMonitor : IDisposable
     public void Start()
     {
         if (TraceEventSession.IsElevated() != true) throw new UnauthorizedAccessException("precisa de administrador");
-        _session = new TraceEventSession(SessionName, TraceEventSessionOptions.Create) { StopOnDispose = true };
+        _session = new TraceEventSession(_sessionName, TraceEventSessionOptions.Create) { StopOnDispose = true };
         _session.EnableProvider(Dxgi, TraceEventLevel.Informational, KeywordEvents,
             new TraceEventProviderOptions { ProcessIDFilter = _pids.ToList() });
         var parser = new RegisteredTraceEventParser(_session.Source);
@@ -42,7 +48,7 @@ public sealed class EtwPresentMonitor : IDisposable
             catch (Exception ex) { Log.Error($"Monitor de FPS parou: {ex.Message}"); }
         }) { IsBackground = true, Name = "Folga ETW FPS" };
         _thread.Start();
-        Log.Info($"Monitor de FPS ligado (PID {string.Join(", ", _pids)})");
+        if (_sessionName == DefaultSessionName) Log.Info($"Monitor de FPS ligado (PID {string.Join(", ", _pids)})");
     }
 
     /// <summary>Milissegundos desde o último Present; long.MaxValue se nenhum ainda.</summary>
@@ -89,4 +95,35 @@ public sealed class EtwPresentMonitor : IDisposable
         _thread?.Join(TimeSpan.FromSeconds(2));
         _session = null;
     }
+}
+
+/// <summary>Medição curta de DirectX para a detecção automática: só enquanto o app é candidato a jogo.</summary>
+public sealed class EtwPresentProbe : Detection.IPresentProbe
+{
+    private const long StaleAfterMs = 2_000;
+    private readonly EtwPresentMonitor _monitor;
+
+    private EtwPresentProbe(EtwPresentMonitor monitor) => _monitor = monitor;
+
+    /// <summary>null sem admin ou se a sessão ETW não abrir; a detecção segue só com a tela cheia.</summary>
+    public static EtwPresentProbe? TryStart(int pid)
+    {
+        if (TraceEventSession.IsElevated() != true) return null;
+        var monitor = new EtwPresentMonitor([pid], "Folga-GameProbe");
+        try
+        {
+            monitor.Start();
+            return new EtwPresentProbe(monitor);
+        }
+        catch (Exception ex)
+        {
+            monitor.Dispose();
+            Log.Warn($"Medição de DirectX para detecção indisponível: {ex.Message}");
+            return null;
+        }
+    }
+
+    public double Fps => _monitor.MsSinceLastPresent > StaleAfterMs ? 0 : _monitor.Main?.Fps() ?? 0;
+
+    public void Dispose() => _monitor.Dispose();
 }

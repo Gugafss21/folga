@@ -113,7 +113,7 @@ public sealed class NetworkTests : IDisposable
         Assert.Equal(1000, config.Background[1].UploadLimitKbps);
         Assert.Equal(0, config.Background[2].UploadLimitKbps);
         Assert.True(config.Network.PauseWindowsUpdate);
-        Assert.Contains("\"version\": 2", File.ReadAllText(path));
+        Assert.Contains($"\"version\": {FolgaConfig.CurrentVersion}", File.ReadAllText(path));
     }
 
     [Fact]

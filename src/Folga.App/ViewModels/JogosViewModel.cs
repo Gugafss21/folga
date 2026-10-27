@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Folga.App.Services;
+using Folga.Core.Detection;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
 
@@ -18,16 +20,21 @@ public sealed partial class GameRowViewModel : ObservableObject
     [ObservableProperty] private bool _useIfeoFallback = true;
     [ObservableProperty] private bool _markDscp;
 
+    public bool AutoDetected { get; init; }
+    public string Origin => AutoDetected ? "Detectado" : "Manual";
+
     public static GameRowViewModel From(GameProfile p) => new()
     {
         Enabled = p.Enabled, Name = p.Name, ExecutablesText = string.Join(", ", p.Executables),
         Priority = p.Priority, Cores = p.Cores, UseIfeoFallback = p.UseIfeoFallback, MarkDscp = p.MarkDscp,
+        AutoDetected = p.AutoDetected,
     };
 
     public GameProfile ToModel() => new()
     {
         Enabled = Enabled, Name = Name.Trim(), Executables = SplitList(ExecutablesText),
         Priority = Priority, Cores = Cores, UseIfeoFallback = UseIfeoFallback, MarkDscp = MarkDscp,
+        AutoDetected = AutoDetected,
     };
 
     public static List<string> SplitList(string text) =>
@@ -43,10 +50,14 @@ public sealed partial class JogosViewModel : ObservableObject
 {
     private readonly AppServices _services;
 
+    // .exe de jogos detectados que o usuário removeu: vão para as exclusões ao salvar, senão voltariam na próxima vez.
+    private readonly List<string> _removedDetected = [];
+
     public JogosViewModel(AppServices services)
     {
         _services = services;
         Reload();
+        services.Detector.Detected += game => Application.Current?.Dispatcher.BeginInvoke(() => OnDetected(game));
     }
 
     public ObservableCollection<GameRowViewModel> Rows { get; } = [];
@@ -55,11 +66,26 @@ public sealed partial class JogosViewModel : ObservableObject
     [ObservableProperty] private GameRowViewModel? _selectedRow;
     [ObservableProperty] private RunningProcess? _selectedRunning;
     [ObservableProperty] private string _status = "";
+    [ObservableProperty] private bool _autoDetectEnabled;
+    [ObservableProperty] private string _exclusionsText = "";
 
     private void Reload()
     {
+        var config = _services.Engine.Config;
         Rows.Clear();
-        foreach (var g in _services.Engine.Config.Games) Rows.Add(GameRowViewModel.From(g));
+        foreach (var g in config.Games) Rows.Add(GameRowViewModel.From(g));
+        AutoDetectEnabled = config.AutoDetect.Enabled;
+        ExclusionsText = string.Join(", ", config.AutoDetect.Exclusions);
+        _removedDetected.Clear();
+    }
+
+    /// <summary>Acrescenta a linha do jogo recém-detectado sem apagar o que estiver sendo editado.</summary>
+    private void OnDetected(DetectedGame game)
+    {
+        if (Rows.Any(r => ExeMatcher.MatchesAny(GameRowViewModel.SplitList(r.ExecutablesText), game.ExeName))) return;
+        if (_services.Engine.Config.Games.LastOrDefault(g => g.AutoDetected && g.Executables.Contains(game.ExeName, StringComparer.OrdinalIgnoreCase)) is not { } profile) return;
+        Rows.Add(GameRowViewModel.From(profile));
+        Status = $"{game.Name} detectado em tela cheia e adicionado.";
     }
 
     [RelayCommand]
@@ -74,9 +100,14 @@ public sealed partial class JogosViewModel : ObservableObject
     [RelayCommand]
     private void Remove()
     {
-        if (SelectedRow is null) return;
-        Rows.Remove(SelectedRow);
-        Status = "Removido. Salve para aplicar.";
+        if (SelectedRow is not { } row) return;
+        Rows.Remove(row);
+        if (row.AutoDetected)
+        {
+            _removedDetected.AddRange(GameRowViewModel.SplitList(row.ExecutablesText));
+            Status = "Removido; ao salvar, vai para \"nunca tratar como jogo\".";
+        }
+        else Status = "Removido. Salve para aplicar.";
     }
 
     /// <summary>Lista apps com janela aberta: o jeito mais fácil de descobrir o .exe de um jogo.</summary>
@@ -120,7 +151,17 @@ public sealed partial class JogosViewModel : ObservableObject
     private void Save()
     {
         var games = Rows.Select(r => r.ToModel()).Where(g => g.Name.Length > 0 && g.Executables.Count > 0).ToList();
-        MainViewModel.Commit(_services, c => c.Games = games);
+        var exclusions = GameRowViewModel.SplitList(ExclusionsText);
+        foreach (var exe in _removedDetected)
+        {
+            if (!ExeMatcher.MatchesAny(exclusions, exe) && !ExeMatcher.MatchesAny(games.SelectMany(g => g.Executables), exe)) exclusions.Add(exe);
+        }
+        MainViewModel.Commit(_services, c =>
+        {
+            c.Games = games;
+            c.AutoDetect.Enabled = AutoDetectEnabled;
+            c.AutoDetect.Exclusions = exclusions;
+        });
         Reload();
         Status = $"Salvo: {games.Count} jogos.";
     }

@@ -122,6 +122,18 @@ public sealed class BoostEngine : IDisposable
         Notify();
     }
 
+    /// <summary>Acrescenta um perfil (o jogo detectado automaticamente) e já aplica no processo aberto, sem desfazer nada.</summary>
+    public void AddGameProfile(GameProfile profile)
+    {
+        lock (_gate)
+        {
+            if (_disposed) return;
+            _config.Games.Add(profile);
+            Rescan();
+        }
+        Notify();
+    }
+
     /// <summary>Desfaz tudo, inclusive o IFEO, e desliga o boost.</summary>
     public void RestoreAll()
     {
