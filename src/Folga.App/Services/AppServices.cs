@@ -23,6 +23,7 @@ public sealed class AppServices : IDisposable
     public required RamInfo? Ram { get; init; }
     public required TelemetryService Telemetry { get; init; }
     public required AutoGameDetector Detector { get; init; }
+    public required OverlayService Overlay { get; init; }
 
     public static AppServices Create(string? configPath = null)
     {
@@ -57,6 +58,7 @@ public sealed class AppServices : IDisposable
             Ram = SystemInfo.ReadRam(),
             Telemetry = telemetry,
             Detector = detector,
+            Overlay = new OverlayService(engine, telemetry, memory),
         };
     }
 
@@ -66,6 +68,7 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         Detector.Dispose();
+        Overlay.Dispose();
         Engine.Dispose();
         Telemetry.Dispose();
         CpuUsage.Dispose();

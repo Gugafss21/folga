@@ -102,7 +102,7 @@ public sealed class AutoDetectSettings
 public sealed class FolgaConfig
 {
     /// <summary>Versão do formato; arquivos antigos são migrados em <see cref="ConfigStore.Load"/>.</summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int Version { get; set; } = 1;
     public bool BoostEnabled { get; set; } = true;
@@ -111,6 +111,7 @@ public sealed class FolgaConfig
     public MemorySettings Memory { get; set; } = new();
     public NetworkSettings Network { get; set; } = new();
     public AutoDetectSettings AutoDetect { get; set; } = new();
+    public Overlay.OverlaySettings Overlay { get; set; } = new();
 
     public GameProfile? FindGame(string exe) => Games.FirstOrDefault(g => g.Matches(exe));
     public BackgroundRule? FindRule(string exe) => Background.FirstOrDefault(r => r.Matches(exe));

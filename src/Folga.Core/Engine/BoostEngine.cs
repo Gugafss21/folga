@@ -122,6 +122,12 @@ public sealed class BoostEngine : IDisposable
         Notify();
     }
 
+    /// <summary>Troca os ajustes do overlay. Não mexem na sessão, então nada é desfeito nem reaplicado.</summary>
+    public void UpdateOverlay(Overlay.OverlaySettings overlay)
+    {
+        lock (_gate) _config.Overlay = overlay;
+    }
+
     /// <summary>Acrescenta um perfil (o jogo detectado automaticamente) e já aplica no processo aberto, sem desfazer nada.</summary>
     public void AddGameProfile(GameProfile profile)
     {

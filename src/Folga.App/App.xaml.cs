@@ -53,6 +53,7 @@ public partial class App : Application
         _services = AppServices.Create(configIndex >= 0 && configIndex + 1 < e.Args.Length ? e.Args[configIndex + 1] : null);
         _services.Engine.Start();
         _services.Detector.Start();
+        _services.Overlay.Start();
 
         var viewModel = new MainViewModel(_services);
         _window = new MainWindow { DataContext = viewModel };

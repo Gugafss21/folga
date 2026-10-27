@@ -1,3 +1,4 @@
+using Folga.Core.Overlay;
 using Folga.Core.Profiles;
 
 namespace Folga.App.ViewModels;
@@ -40,6 +41,20 @@ public static class Choices
         new(BackgroundCores.LastCore, "Último núcleo", "O app fica preso ao último núcleo (2 threads), longe do jogo."),
         new(BackgroundCores.LastTwoCores, "Últimos 2 núcleos",
             "O app fica nos 2 últimos núcleos (4 threads). Mais folga para o app, menos para o jogo."),
+    ];
+
+    public static IReadOnlyList<Choice<OverlayLayout>> OverlayLayouts { get; } =
+    [
+        new(OverlayLayout.Lines, "Um por linha", "Cada número numa linha, em coluna. Fácil de ler, ocupa mais altura."),
+        new(OverlayLayout.OneLine, "Tudo numa linha", "Os números lado a lado. Discreto, bom para o canto de cima."),
+    ];
+
+    public static IReadOnlyList<Choice<OverlayCorner>> OverlayCorners { get; } =
+    [
+        new(OverlayCorner.TopLeft, "Superior esquerdo", "Canto de cima à esquerda (o padrão do RTSS)."),
+        new(OverlayCorner.TopRight, "Superior direito", "Canto de cima à direita."),
+        new(OverlayCorner.BottomLeft, "Inferior esquerdo", "Canto de baixo à esquerda."),
+        new(OverlayCorner.BottomRight, "Inferior direito", "Canto de baixo à direita."),
     ];
 
     public static PriorityChoice From(PriorityLevel? level) =>

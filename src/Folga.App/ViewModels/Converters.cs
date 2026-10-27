@@ -31,6 +31,24 @@ public sealed class PercentToHeightConverter : IMultiValueConverter
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => [];
 }
 
+/// <summary>"RRGGBB" → pincel (amostra de cor ao lado do campo).</summary>
+public sealed class HexToBrushConverter : IValueConverter
+{
+    public static HexToBrushConverter Instance { get; } = new();
+
+    public object Convert(object? value, Type targetType, object parameter, CultureInfo culture) => Brush(value as string);
+
+    public static SolidColorBrush Brush(string? hex)
+    {
+        var c = Folga.Core.Overlay.OverlayFormatter.NormalizeColor(hex);
+        var brush = new SolidColorBrush(Color.FromRgb(System.Convert.ToByte(c[..2], 16), System.Convert.ToByte(c[2..4], 16), System.Convert.ToByte(c[4..], 16)));
+        brush.Freeze();
+        return brush;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class NotNullToVisibilityConverter : IValueConverter
 {
     public static NotNullToVisibilityConverter Instance { get; } = new();

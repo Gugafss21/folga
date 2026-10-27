@@ -1,0 +1,159 @@
+<UserControl x:Class="Folga.App.Views.OverlayView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:v="clr-namespace:Folga.App.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:OverlayViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+        <Style x:Key="Swatch" TargetType="Border">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+                    ToolTip="Grava e aplica no próximo segundo, sem desfazer nada do jogo aberto." />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <StackPanel Margin="0,0,16,0">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="Overlay" Style="{StaticResource Text.Headline}" />
+                    <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Text="Os números do jogo por cima do jogo. Quem desenha é o RTSS (RivaTuner Statistics Server), que precisa estar aberto; o Folga só escreve o texto na memória dele, nada é injetado pelo Folga." />
+                </StackPanel>
+
+                <!-- RTSS -->
+                <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,0,0,12">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Abrir o RTSS" Style="{StaticResource Button.Plain}" Command="{Binding OpenRtssCommand}"
+                                Visibility="{Binding CanOpenRtss, Converter={StaticResource BoolToVisibility}}"
+                                ToolTip="Abre o RivaTuner Statistics Server instalado no PC. Para ele abrir junto com o Windows, ligue a opção de iniciar com o Windows nas configurações dele." />
+                        <TextBlock Text="{Binding RtssText}" Style="{StaticResource Text.Body}" VerticalAlignment="Center"
+                                   ToolTip="O Folga confere o RTSS a cada segundo. Com o RTSS fechado nada aparece no jogo, mas a configuração fica guardada." />
+                    </DockPanel>
+                </Border>
+
+                <!-- Aparência + prévia -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource Panel}" Padding="14,12">
+                        <StackPanel>
+                            <CheckBox IsChecked="{Binding Enabled}" Content="Mostrar o overlay no jogo"
+                                      ToolTip="Desmarcado: o Folga não escreve nada no RTSS (o que o próprio RTSS ou o Afterburner mostram continua)." />
+                            <CheckBox IsChecked="{Binding OnlyDuringGame}" Content="Só com um jogo aberto" Margin="0,8,0,0"
+                                      ToolTip="Marcado: aparece só quando o Folga reconhece um jogo (da lista ou detectado). Desmarcado: aparece em qualquer app 3D que o RTSS desenhe, mas FPS e ping só têm número com jogo aberto." />
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="8" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="8" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="8" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Formato" Style="{StaticResource FieldLabel}" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.OverlayLayouts}"
+                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Layout}"
+                                          ToolTip="Um número por linha ou todos lado a lado. Passe o mouse em cada opção." />
+
+                                <TextBlock Grid.Row="2" Text="Canto" Style="{StaticResource FieldLabel}" />
+                                <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.OverlayCorners}"
+                                          SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Corner}"
+                                          ToolTip="Em que canto da tela o texto fica. Se outro app (Afterburner) também usar o RTSS, escolha um canto diferente do dele." />
+
+                                <TextBlock Grid.Row="4" Text="Tamanho (%)" Style="{StaticResource FieldLabel}" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SizeText, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"
+                                         ToolTip="Tamanho em relação à fonte do RTSS: 100 é o tamanho do perfil dele, 50 é metade, 200 o dobro. A fonte em si (tipo de letra, sombra) é escolhida no RTSS." />
+
+                                <TextBlock Grid.Row="6" Text="Cores" Style="{StaticResource FieldLabel}" />
+                                <WrapPanel Grid.Row="6" Grid.Column="1">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,14,4"
+                                                ToolTip="Cor dos rótulos e unidades (FPS, ms, %), em RRGGBB. Ex.: A0A0A0 é cinza.">
+                                        <Border Style="{StaticResource Swatch}" Background="{Binding LabelColor, Converter={x:Static vm:HexToBrushConverter.Instance}}" />
+                                        <TextBox Text="{Binding LabelColor, UpdateSourceTrigger=PropertyChanged}" Width="76" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,14,4"
+                                                ToolTip="Cor dos números, em RRGGBB. Ex.: FFFFFF é branco, E8A33D é âmbar.">
+                                        <Border Style="{StaticResource Swatch}" Background="{Binding ValueColor, Converter={x:Static vm:HexToBrushConverter.Instance}}" />
+                                        <TextBox Text="{Binding ValueColor, UpdateSourceTrigger=PropertyChanged}" Width="76" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4"
+                                                ToolTip="Cor do número quando passa do limite de alerta do item (coluna Alerta). Ex.: FF5050 é vermelho.">
+                                        <Border Style="{StaticResource Swatch}" Background="{Binding WarnColor, Converter={x:Static vm:HexToBrushConverter.Instance}}" />
+                                        <TextBox Text="{Binding WarnColor, UpdateSourceTrigger=PropertyChanged}" Width="76" />
+                                    </StackPanel>
+                                </WrapPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <DockPanel Grid.Column="2">
+                        <TextBlock DockPanel.Dock="Top" Text="Prévia (números de exemplo)" Style="{StaticResource Text.Label}" Margin="0,0,0,6"
+                                   ToolTip="Como o texto fica no canto da tela. A fonte real é a do RTSS; no jogo entram os números de verdade." />
+                        <Border Background="#0B0F14" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" MinHeight="170">
+                            <v:OverlayPreview Segments="{Binding Preview}" FontSize="{Binding PreviewFontSize}" FontFamily="{StaticResource MonoFont}" FontWeight="SemiBold"
+                                              HorizontalAlignment="{Binding PreviewHorizontal}" VerticalAlignment="{Binding PreviewVertical}" TextWrapping="Wrap" />
+                        </Border>
+                    </DockPanel>
+                </Grid>
+
+                <!-- Itens -->
+                <DockPanel Margin="0,4,0,8">
+                    <Button DockPanel.Dock="Right" Content="Padrão" Style="{StaticResource Button.Plain}" Command="{Binding ResetItemsCommand}" Margin="8,0,0,0"
+                            ToolTip="Volta a lista de itens ao padrão (FPS, 1% low, GPU, temperatura e ping ligados). Só vale depois de Salvar." />
+                    <Button DockPanel.Dock="Right" Content="Descer" Style="{StaticResource Button.Plain}" Command="{Binding MoveDownCommand}" Margin="8,0,0,0"
+                            ToolTip="Move o item selecionado para baixo (ou para a direita, no formato de uma linha)." />
+                    <Button DockPanel.Dock="Right" Content="Subir" Style="{StaticResource Button.Plain}" Command="{Binding MoveUpCommand}"
+                            ToolTip="Move o item selecionado para cima (ou para a esquerda, no formato de uma linha)." />
+                    <TextBlock Text="O que aparece" Style="{StaticResource Text.Section}" VerticalAlignment="Center"
+                               ToolTip="Marque os números que quer ver, troque o rótulo de cada um e, se quiser, um limite para o número mudar de cor." />
+                </DockPanel>
+
+                <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
+                          PreviewMouseWheel="PassWheelToPage">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Header="Mostrar" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="76"
+                                                v:Hint.Text="Marcado: o número aparece no overlay." />
+                        <DataGridTextColumn Header="Número" Binding="{Binding Name, Mode=OneWay}" IsReadOnly="True" Width="1.4*"
+                                            v:Hint.Text="O que é medido. FPS, 1% low, frametime e ping precisam do Folga como administrador e de um jogo aberto." />
+                        <DataGridTextColumn Header="Rótulo" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"
+                                            v:Hint.Text="Texto antes do número no jogo. Deixe vazio para mostrar só o número. Dê dois cliques para editar." />
+                        <DataGridTextColumn Header="Alerta" Binding="{Binding WarnText, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                                            v:Hint.Text="Limite para o número ficar na cor de alerta. Vazio = sem alerta. Para FPS, 1% low e RAM livre o alerta é abaixo do limite; para o resto, acima." />
+                        <DataGridTextColumn Header="Quando" Binding="{Binding WarnUnit, Mode=OneWay}" IsReadOnly="True" Width="1.2*"
+                                            v:Hint.Text="Em que sentido e unidade o limite de alerta é comparado." />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
