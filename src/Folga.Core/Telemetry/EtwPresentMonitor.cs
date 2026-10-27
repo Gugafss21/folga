@@ -71,6 +71,13 @@ public sealed class EtwPresentMonitor : IDisposable
         }
     }
 
+    /// <summary>A partida inteira da cadeia que mais desenhou (no fim, o jogo já pode ter parado de desenhar).</summary>
+    public FrameSummary SessionSummary()
+    {
+        lock (_gate)
+            return _bySwapChain.Values.Select(s => s.Session()).OrderByDescending(s => s.Frames).FirstOrDefault();
+    }
+
     private void OnEvent(TraceEvent e)
     {
         var id = (int)e.ID;

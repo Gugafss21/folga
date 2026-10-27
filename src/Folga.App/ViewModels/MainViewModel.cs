@@ -20,6 +20,7 @@ public sealed partial class MainViewModel : ObservableObject
         SegundoPlano = new SegundoPlanoViewModel(services);
         Rede = new RedeViewModel(services);
         Overlay = new OverlayViewModel(services);
+        Sessoes = new SessoesViewModel(services);
         Sistema = new SistemaViewModel(services);
         Pages =
         [
@@ -28,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Segundo plano", SegundoPlano, "Regras para navegador, Discord e launchers enquanto um jogo está aberto, e o estado real de cada um."),
             new("Rede", Rede, "Quem está usando download e upload agora, e o que o Folga faz na rede durante o jogo."),
             new("Overlay", Overlay, "Os números do jogo desenhados por cima do jogo pelo RTSS: o que aparece, nomes, tamanho, cores e canto."),
+            new("Sessões", Sessoes, "Cada partida medida (FPS, 1% low, travadas, ping) e a comparação com boost contra sem boost (modo Só medir), para ver o que o Folga muda no seu PC."),
             new("Sistema", Sistema, "Ajustes do próprio Windows: arquivo de paginação, memória compactada, Modo de Jogo, otimizações de janela, capturas do Game Bar, agendamento de GPU e plano de energia durante o jogo. Avisa quando precisa reiniciar."),
         ];
         _selectedPage = Pages[0];
@@ -44,9 +46,10 @@ public sealed partial class MainViewModel : ObservableObject
     private void RefreshBoost()
     {
         var state = _services.Engine.GetState();
+        var measuring = state.MeasureOnly ? " · só medindo" : "";
         (BoostKind, BoostStatus) = !state.Enabled ? ("Off", "Boost desligado")
-            : state.SessionActive ? ("Active", state.Games[0].ProfileName)
-            : ("Waiting", "Esperando um jogo");
+            : state.SessionActive ? ("Active", state.Games[0].ProfileName + measuring)
+            : ("Waiting", (state.MeasureOnly ? "Só medir" : "Esperando um jogo"));
     }
 
     public AgoraViewModel Agora { get; }
@@ -54,6 +57,7 @@ public sealed partial class MainViewModel : ObservableObject
     public SegundoPlanoViewModel SegundoPlano { get; }
     public RedeViewModel Rede { get; }
     public OverlayViewModel Overlay { get; }
+    public SessoesViewModel Sessoes { get; }
     public SistemaViewModel Sistema { get; }
     public IReadOnlyList<NavPage> Pages { get; }
 

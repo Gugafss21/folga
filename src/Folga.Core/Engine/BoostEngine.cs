@@ -19,7 +19,8 @@ public sealed record EngineState(
     int TrimCount,
     int PurgeCount,
     DateTimeOffset? LastPurge,
-    MemorySnapshot? Memory)
+    MemorySnapshot? Memory,
+    bool MeasureOnly = false)
 {
     public bool SessionActive => Games.Count > 0;
 }
@@ -97,7 +98,7 @@ public sealed class BoostEngine : IDisposable
             return new EngineState(
                 _config.BoostEnabled,
                 _games.Values.Select(g => new GameStatus(g.Profile.Name, g.Process, g.Note)).ToList(),
-                _background.Count, _trimCount, _purgeCount, _lastPurge, _lastMemory);
+                _background.Count, _trimCount, _purgeCount, _lastPurge, _lastMemory, _config.MeasureOnly);
         }
     }
 
@@ -121,6 +122,20 @@ public sealed class BoostEngine : IDisposable
         {
             EndSession();
             _config = config;
+            Rescan();
+        }
+        Notify();
+    }
+
+    /// <summary>Liga/desliga o "só medir". Com um jogo aberto, desfaz ou aplica o boost na hora.</summary>
+    public void SetMeasureOnly(bool measureOnly)
+    {
+        lock (_gate)
+        {
+            if (_config.MeasureOnly == measureOnly) return;
+            EndSession();
+            _config.MeasureOnly = measureOnly;
+            Log.Info(measureOnly ? "Só medir: o jogo é medido, nada é alterado" : "Só medir desligado: boost normal");
             Rescan();
         }
         Notify();
@@ -204,7 +219,7 @@ public sealed class BoostEngine : IDisposable
             {
                 changed = AddGame(pid, exe, profile);
             }
-            else if (_games.Count > 0 && _config.FindRule(exe) is { } rule)
+            else if (_games.Count > 0 && !_config.MeasureOnly && _config.FindRule(exe) is { } rule)
             {
                 changed = HoldBackground(pid, exe, rule);
             }
@@ -252,7 +267,7 @@ public sealed class BoostEngine : IDisposable
         if (_games.ContainsKey(pid)) return false;
         if (_control.Resolve(pid, exe) is not { } process) return false;
 
-        var note = ApplyGameTweaks(process, profile);
+        var note = _config.MeasureOnly ? "Só medindo: nada foi alterado." : ApplyGameTweaks(process, profile);
         _games[pid] = (profile, process, note);
         Log.Info($"Jogo detectado: {profile.Name} ({exe}, PID {pid}). {note}");
 
@@ -262,6 +277,11 @@ public sealed class BoostEngine : IDisposable
 
     private void BeginSession(IReadOnlyList<ProcessEntry> snapshot)
     {
+        if (_config.MeasureOnly)
+        {
+            Log.Info("Sessão iniciada só para medir: nada alterado");
+            return;
+        }
         foreach (var p in snapshot)
         {
             if (_games.ContainsKey(p.Pid) || _config.FindGame(p.ExeName) is not null) continue;

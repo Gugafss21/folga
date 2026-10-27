@@ -23,6 +23,7 @@ public sealed class AppServices : IDisposable
     public required CpuUsageSampler CpuUsage { get; init; }
     public required RamInfo? Ram { get; init; }
     public required TelemetryService Telemetry { get; init; }
+    public required SessionLog Sessions { get; init; }
     public required AutoGameDetector Detector { get; init; }
     public required OverlayService Overlay { get; init; }
     public required IPowerPlan Power { get; init; }
@@ -39,8 +40,26 @@ public sealed class AppServices : IDisposable
         var engine = new BoostEngine(store.Load(), topology, control, new RegistryIfeoStore(), memory,
             journal, ProcessWatcherFactory.Create(control), new WindowsNetworkControl(journal), power: power);
         var telemetry = new TelemetryService(new GpuMonitor());
+        var sessions = new SessionLog(SessionLog.DefaultPath);
+        (string Game, bool Boost)? current = null;
         // FPS e ping acompanham a sessão: ligam quando o jogo abre e desligam quando fecha.
-        engine.StateChanged += () => telemetry.TrackGame(engine.GetState().Games.Select(g => g.Process.Pid).ToHashSet());
+        engine.StateChanged += () =>
+        {
+            var state = engine.GetState();
+            // Trocou entre boost e "só medir" no meio da partida: fecha a partida no modo antigo para não misturar.
+            if (state.SessionActive && current is { } c && c.Boost == state.MeasureOnly) telemetry.TrackGame([]);
+            if (state.SessionActive) current = (state.Games[0].ProfileName, !state.MeasureOnly);
+            telemetry.TrackGame(state.Games.Select(g => g.Process.Pid).ToHashSet());
+        };
+        telemetry.SessionFinished += metrics =>
+        {
+            if (current is not { } c) return;
+            var minutes = (metrics.End - metrics.Start).TotalMinutes;
+            if (sessions.Add(c.Game, c.Boost, metrics) is { } r)
+                Log.Info($"Partida guardada: {c.Game} {(c.Boost ? "com boost" : "sem boost (só medir)")}, {minutes:0} min, {r.AverageFps:0} FPS, 1% low {r.OnePercentLow:0}");
+            else
+                Log.Info($"Partida de {c.Game} não guardada: curta demais ({minutes:0.#} min) ou sem FPS medido (precisa de admin)");
+        };
 
         var detector = new AutoGameDetector(new WindowsForegroundSource(), EtwPresentProbe.TryStart,
             () => engine.Config, () => engine.GetState().SessionActive);
@@ -61,6 +80,7 @@ public sealed class AppServices : IDisposable
             CpuUsage = new CpuUsageSampler(topology),
             Ram = SystemInfo.ReadRam(),
             Telemetry = telemetry,
+            Sessions = sessions,
             Detector = detector,
             Overlay = new OverlayService(engine, telemetry, memory),
             Power = power,

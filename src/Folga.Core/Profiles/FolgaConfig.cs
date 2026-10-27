@@ -112,6 +112,12 @@ public sealed class FolgaConfig
 
     public int Version { get; set; } = 1;
     public bool BoostEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Reconhece e mede o jogo, mas não aplica nada (prioridade, apps de fundo, rede, energia). Serve para
+    /// jogar partidas "sem boost" e comparar com as partidas com boost na tela Sessões.
+    /// </summary>
+    public bool MeasureOnly { get; set; }
     public List<GameProfile> Games { get; set; } = [];
     public List<BackgroundRule> Background { get; set; } = [];
     public MemorySettings Memory { get; set; } = new();

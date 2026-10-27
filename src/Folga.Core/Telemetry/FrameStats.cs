@@ -14,6 +14,7 @@ public sealed class FrameStats
 
     private readonly object _gate = new();
     private readonly Queue<FrameSample> _frames = new();
+    private readonly FrameTimeHistogram _session = new();
     private double? _lastPresent;
 
     public void AddPresent(double atMs)
@@ -21,7 +22,10 @@ public sealed class FrameStats
         lock (_gate)
         {
             if (_lastPresent is { } last && atMs > last && atMs - last < MaxGapMs)
+            {
                 _frames.Enqueue(new FrameSample(atMs, atMs - last));
+                _session.Add(atMs - last);
+            }
             _lastPresent = atMs;
             while (_frames.Count > 0 && _frames.Peek().AtMs < atMs - HistoryMs) _frames.Dequeue();
         }
@@ -30,6 +34,12 @@ public sealed class FrameStats
     public int Count
     {
         get { lock (_gate) return _frames.Count; }
+    }
+
+    /// <summary>Resumo de todos os quadros desde que a cadeia apareceu (a sessão inteira, não só 60 s).</summary>
+    public FrameSummary Session()
+    {
+        lock (_gate) return _session.Summary();
     }
 
     /// <summary>Quadros na janela que termina no último Present.</summary>

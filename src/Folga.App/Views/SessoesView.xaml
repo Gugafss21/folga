@@ -1,0 +1,146 @@
+<UserControl x:Class="Folga.App.Views.SessoesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:v="clr-namespace:Folga.App.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:SessoesViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="Cell" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="Remover partida" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}"
+                    ToolTip="Tira a partida selecionada da tabela e da comparação. Use para partidas que não representam o normal: fila longa, queda do servidor, alt-tab demorado, Windows Update rodando." />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <StackPanel Margin="0,0,16,0">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="Sessões" Style="{StaticResource Text.Headline}" />
+                    <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                               Text="Cada partida medida fica guardada aqui. Compare partidas com boost e sem boost para ver o que o Folga muda de verdade no seu PC: o que importa é o 1% low e as travadas, não o FPS médio." />
+                </StackPanel>
+
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding MeasureOnly}" Content="Só medir (próximas partidas sem boost)"
+                                  ToolTip="Ligado: o Folga continua reconhecendo e medindo o jogo, mas não mexe em nada (sem prioridade, sem segurar apps de fundo, sem limite de rede, sem trocar o plano de energia). As partidas entram na comparação como &quot;sem boost&quot;. Desligue para voltar ao boost normal. Mudar com o jogo aberto desfaz ou aplica o boost na hora e começa uma partida nova na medição." />
+                        <TextBlock Style="{StaticResource Text.Label}" Margin="28,4,0,0" TextWrapping="Wrap"
+                                   Text="Para uma comparação justa: jogue algumas partidas com boost e o mesmo tanto sem boost, nas mesmas condições (mesmo modo de jogo, navegador e Discord abertos igual). Partidas com menos de 2 minutos não contam, e a medição precisa do Folga como administrador." />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Comparação" Style="{StaticResource Text.Section}" Margin="0,0,0,10"
+                           ToolTip="Média das partidas de cada jogo, com boost e sem boost, ponderada pelo tempo de jogo. Diferença em verde: o boost ajudou; em âmbar: piorou; em cinza: menos de 5%, que é a variação normal entre partidas." />
+
+                <Grid>
+                    <ItemsControl x:Name="CardsList" ItemsSource="{Binding Cards}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ComparisonCard}">
+                                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                                    <StackPanel Grid.IsSharedSizeScope="True">
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Footer}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Game}" Style="{StaticResource Text.Section}" />
+                                        </DockPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="100" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Métrica" Style="{StaticResource Text.Label}" />
+                                            <TextBlock Grid.Column="1" Text="Com boost" Style="{StaticResource Text.Label}" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="Sem boost" Style="{StaticResource Text.Label}" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="3" Text="Diferença" Style="{StaticResource Text.Label}" HorizontalAlignment="Right" />
+                                        </Grid>
+                                        <Rectangle Height="1" Fill="{StaticResource LineBrush}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding Rows}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:MetricRow}">
+                                                    <Grid ToolTip="{Binding Hint}" Background="Transparent">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="120" />
+                                                            <ColumnDefinition Width="120" />
+                                                            <ColumnDefinition Width="100" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Name}" Style="{StaticResource Cell}" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Boost}" Style="{StaticResource Cell}" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Plain}" Style="{StaticResource Cell}" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="3" Text="{Binding Difference}" HorizontalAlignment="Right" FontWeight="SemiBold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Cell}">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Better}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Better}" Value="False">
+                                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding Missing}" Style="{StaticResource Text.Body}" Foreground="{StaticResource AccentBrush}" Margin="0,8,0,0"
+                                                   Visibility="{Binding Missing, Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Style="{StaticResource Panel}" Padding="14,24"
+                            Visibility="{Binding HasItems, ElementName=CardsList, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}">
+                        <TextBlock Style="{StaticResource Text.Empty}" Margin="0"
+                                   Text="Nenhuma partida medida ainda. Abra o Folga como administrador e jogue pelo menos 2 minutos: a partida aparece aqui quando o jogo fechar." />
+                    </Border>
+                </Grid>
+
+                <TextBlock Text="Partidas" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="Todas as partidas medidas, da mais nova para a mais velha (até 300). Ficam em %LocalAppData%\Folga\sessions.json." />
+
+                <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" IsReadOnly="True"
+                          PreviewMouseWheel="PassWheelToPage" MinHeight="120">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Quando" Binding="{Binding When}" Width="96"
+                                            v:Hint.Text="Dia e hora em que a partida começou." />
+                        <DataGridTextColumn Header="Jogo" Binding="{Binding Game}" Width="1.4*"
+                                            v:Hint.Text="Nome do jogo, como está na tela Jogos." />
+                        <DataGridTextColumn Header="Modo" Binding="{Binding Mode}" Width="96"
+                                            v:Hint.Text="Com boost: o Folga aplicou tudo. Sem boost: jogada com Só medir ligado, nada foi alterado." />
+                        <DataGridTextColumn Header="Duração" Binding="{Binding Duration}" Width="90"
+                                            v:Hint.Text="Quanto tempo o jogo ficou aberto nessa partida." />
+                        <DataGridTextColumn Header="FPS" Binding="{Binding Fps}" Width="60"
+                                            v:Hint.Text="FPS médio da partida inteira." />
+                        <DataGridTextColumn Header="1% low" Binding="{Binding Low}" Width="70"
+                                            v:Hint.Text="FPS dos 1% piores quadros da partida inteira." />
+                        <DataGridTextColumn Header="0,1% low" Binding="{Binding PointOneLow}" Width="76"
+                                            v:Hint.Text="FPS dos 0,1% piores quadros da partida inteira." />
+                        <DataGridTextColumn Header="Travadas/min" Binding="{Binding Hitches}" Width="116"
+                                            v:Hint.Text="Quadros acima de 50 ms por minuto de jogo." />
+                        <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" Width="60"
+                                            v:Hint.Text="Ping médio até o servidor, em ms (vazio se o servidor não responde a ping)." />
+                        <DataGridTextColumn Header="GPU" Binding="{Binding Gpu}" Width="60"
+                                            v:Hint.Text="Uso médio da placa de vídeo. Perto de 99%: a placa é o limite, e o Folga pouco muda o FPS médio." />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
