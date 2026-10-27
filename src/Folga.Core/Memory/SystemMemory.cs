@@ -45,9 +45,10 @@ public sealed unsafe class WindowsSystemMemory : ISystemMemory
 public static class StandbyPolicy
 {
     /// <summary>Limpar só quando a RAM vaga está baixa e há cache suficiente para valer a pena, respeitando o intervalo mínimo.</summary>
-    public static bool ShouldPurge(MemorySnapshot snapshot, MemorySettings settings, DateTimeOffset now, DateTimeOffset? lastPurge)
+    /// <param name="enabled">Ligado/desligado pelo perfil do jogo; null = o da configuração geral.</param>
+    public static bool ShouldPurge(MemorySnapshot snapshot, MemorySettings settings, DateTimeOffset now, DateTimeOffset? lastPurge, bool? enabled = null)
     {
-        if (!settings.PurgeStandbyList) return false;
+        if (!(enabled ?? settings.PurgeStandbyList)) return false;
         if (lastPurge is { } last && now - last < TimeSpan.FromSeconds(settings.PurgeCooldownSeconds)) return false;
         return snapshot.FreeBytes < settings.FreeThresholdMb * Mb && snapshot.StandbyBytes > settings.StandbyMinimumMb * Mb;
     }

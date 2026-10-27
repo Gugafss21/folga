@@ -10,7 +10,7 @@ using Folga.Core.SystemSettings;
 
 namespace Folga.Core.Engine;
 
-public sealed record GameStatus(string ProfileName, ProcessRef Process, string Note);
+public sealed record GameStatus(string ProfileName, ProcessRef Process, string Note, GameProfile Profile);
 
 public sealed record EngineState(
     bool Enabled,
@@ -97,7 +97,7 @@ public sealed class BoostEngine : IDisposable
         {
             return new EngineState(
                 _config.BoostEnabled,
-                _games.Values.Select(g => new GameStatus(g.Profile.Name, g.Process, g.Note)).ToList(),
+                _games.Values.Select(g => new GameStatus(g.Profile.Name, g.Process, g.Note, g.Profile)).ToList(),
                 _background.Count, _trimCount, _purgeCount, _lastPurge, _lastMemory, _config.MeasureOnly);
         }
     }
@@ -141,16 +141,13 @@ public sealed class BoostEngine : IDisposable
         Notify();
     }
 
-    /// <summary>Troca os ajustes do overlay. Não mexem na sessão, então nada é desfeito nem reaplicado.</summary>
-    public void UpdateOverlay(Overlay.OverlaySettings overlay)
+    /// <summary>
+    /// Muda ajustes que não mexem na sessão aberta (overlay, plano de energia do próximo jogo, atualizações),
+    /// sem desfazer e reaplicar o boost como <see cref="ApplyConfig"/> faz.
+    /// </summary>
+    public void ChangeSetting(Action<FolgaConfig> edit)
     {
-        lock (_gate) _config.Overlay = overlay;
-    }
-
-    /// <summary>Troca o plano de energia do jogo. Com um jogo aberto, vale a partir do próximo jogo.</summary>
-    public void UpdatePower(PowerSettings power)
-    {
-        lock (_gate) _config.Power = power;
+        lock (_gate) edit(_config);
     }
 
     /// <summary>Acrescenta um perfil (o jogo detectado automaticamente) e já aplica no processo aberto, sem desfazer nada.</summary>
@@ -219,7 +216,7 @@ public sealed class BoostEngine : IDisposable
             {
                 changed = AddGame(pid, exe, profile);
             }
-            else if (_games.Count > 0 && !_config.MeasureOnly && _config.FindRule(exe) is { } rule)
+            else if (_games.Count > 0 && !_config.MeasureOnly && _config.FindRule(exe) is { } rule && Primary!.AppliesRule(rule))
             {
                 changed = HoldBackground(pid, exe, rule);
             }
@@ -252,6 +249,9 @@ public sealed class BoostEngine : IDisposable
 
     // ---- sessão ----
 
+    /// <summary>O primeiro jogo da sessão: o perfil dele manda nos ajustes por jogo.</summary>
+    private GameProfile? Primary => _games.Count > 0 ? _games.Values.First().Profile : null;
+
     private void Rescan()
     {
         if (!_config.BoostEnabled) return;
@@ -282,10 +282,11 @@ public sealed class BoostEngine : IDisposable
             Log.Info("Sessão iniciada só para medir: nada alterado");
             return;
         }
+        var primary = Primary!;
         foreach (var p in snapshot)
         {
             if (_games.ContainsKey(p.Pid) || _config.FindGame(p.ExeName) is not null) continue;
-            if (_config.FindRule(p.ExeName) is { } rule) HoldBackground(p.Pid, p.ExeName, rule);
+            if (_config.FindRule(p.ExeName) is { } rule && primary.AppliesRule(rule)) HoldBackground(p.Pid, p.ExeName, rule);
         }
         var interval = TimeSpan.FromSeconds(Math.Max(1, _config.Memory.GovernorIntervalSeconds));
         _tick?.Dispose();
@@ -298,7 +299,7 @@ public sealed class BoostEngine : IDisposable
     /// <summary>Troca para o plano escolhido para o jogo, guardando o de antes no diário.</summary>
     private void SwitchPowerScheme()
     {
-        if (_power is null || _config.Power.SchemeDuringGame is not { } target) return;
+        if (_power is null || _config.PowerSchemeFor(Primary) is not { } target) return;
         if (_power.Active() is not { } current || current == target) return;
         if (_power.List().FirstOrDefault(s => s.Id == target) is not { } scheme)
         {
@@ -503,7 +504,7 @@ public sealed class BoostEngine : IDisposable
     private void PurgeStandbyIfNeeded(MemorySnapshot snapshot)
     {
         var now = _time.GetUtcNow();
-        if (!StandbyPolicy.ShouldPurge(snapshot, _config.Memory, now, _lastPurge)) return;
+        if (!StandbyPolicy.ShouldPurge(snapshot, _config.Memory, now, _lastPurge, _config.PurgeStandbyFor(Primary))) return;
         _lastPurge = now;
         if (_memory.PurgeStandbyList())
         {

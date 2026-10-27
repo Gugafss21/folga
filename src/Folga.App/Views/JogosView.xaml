@@ -7,84 +7,171 @@
              xmlns:v="clr-namespace:Folga.App.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:JogosViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+    </UserControl.Resources>
+
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
-            <TextBlock Text="Jogos" Style="{StaticResource Text.Headline}" />
-            <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                       Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe). Jogos fora da lista são achados sozinhos pela detecção automática." />
-        </StackPanel>
-
-        <!-- Detecção automática -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
-            <StackPanel>
-                <CheckBox IsChecked="{Binding AutoDetectEnabled}" Content="Detectar jogos sozinho (tela cheia em primeiro plano + DirectX)"
-                          ToolTip="Ligado: um app em primeiro plano que cobre o monitor inteiro (tela cheia ou janela sem borda) por 10 s e desenha com DirectX a 20 FPS ou mais vira jogo: o boost liga e ele entra nesta lista como Detectado, para ser reconhecido na hora nas próximas vezes. Sem o Folga como administrador não dá para medir o DirectX, e aí valem só a tela cheia e as exclusões. Só salva com o botão Salvar." />
-                <DockPanel Margin="0,10,0,0">
-                    <TextBlock DockPanel.Dock="Left" Text="Nunca tratar como jogo" Style="{StaticResource Text.Label}" VerticalAlignment="Top" Margin="0,8,12,0" />
-                    <TextBox Text="{Binding ExclusionsText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
-                             MaxHeight="71" VerticalScrollBarVisibility="Auto"
-                             ToolTip="Apps que ficam em tela cheia sem ser jogo: navegadores, players de vídeo, chamadas, apresentações, launchers. Separe por vírgula; aceita * (ex.: mpc-hc*.exe). Apps com regra em Segundo plano já ficam de fora sem estar aqui. Remover um jogo Detectado da lista o coloca aqui ao salvar." />
-                </DockPanel>
-            </StackPanel>
-        </Border>
-
-        <!-- Adicionar a partir de um app aberto -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Adicionar um jogo aberto" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
-                <Button DockPanel.Dock="Right" Content="Adicionar" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
-                        Command="{Binding AddRunningCommand}"
-                        ToolTip="Cria um perfil com o .exe do app escolhido na lista. Depois confira o nome e clique em Salvar." />
-                <Button DockPanel.Dock="Right" Content="Atualizar lista" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
-                        Command="{Binding RefreshRunningCommand}"
-                        ToolTip="Busca os apps que estão com janela aberta agora. Abra o jogo antes de clicar." />
-                <ComboBox ItemsSource="{Binding Running}" SelectedItem="{Binding SelectedRunning}" DisplayMemberPath="Label"
-                          ToolTip="Apps com janela aberta: título da janela · nome do .exe. É o jeito mais fácil de descobrir o .exe de um jogo." />
-            </DockPanel>
-        </Border>
-
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
             <Button DockPanel.Dock="Left" Content="Novo" Style="{StaticResource Button.Plain}" Command="{Binding AddCommand}"
                     ToolTip="Adiciona uma linha em branco para digitar o nome e o .exe do jogo à mão." />
             <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0"
                     ToolTip="Tira da lista o jogo selecionado. Só vale depois de Salvar." />
             <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
-                    ToolTip="Grava a lista, a detecção automática e as exclusões e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
+                    ToolTip="Grava a lista, os ajustes de cada jogo, a detecção automática e as exclusões, e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
         </DockPanel>
 
-        <Grid>
-            <DataGrid x:Name="GamesGrid" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64"
-                                            v:Hint.Text="Desmarcado: o perfil fica guardado, mas o Folga ignora o jogo." />
-                    <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"
-                                        v:Hint.Text="Nome que aparece na tela Agora. Só para você identificar; não afeta a detecção." />
-                    <DataGridTextColumn Header="Origem" Binding="{Binding Origin, Mode=OneWay}" IsReadOnly="True" Width="96"
-                                        v:Hint.Text="Manual: você adicionou. Detectado: o Folga achou em tela cheia e lembrou. Para o Folga não detectar de novo, remova (vai para as exclusões) ou desmarque Ativo." />
-                    <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
-                                        v:Hint.Text="Nome do .exe do jogo; vários separados por vírgula. * vale qualquer trecho (PioneerGame*.exe pega PioneerGame-Win64-Shipping.exe). Não diferencia maiúsculas. Dê dois cliques para editar." />
-                    <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"
-                                            ItemsSource="{x:Static vm:Choices.GamePriorities}"
-                                            SelectedValuePath="Value" DisplayMemberPath="Label"
-                                            SelectedValueBinding="{Binding Priority}"
-                                            EditingElementStyle="{StaticResource ChoiceCombo}"
-                                            v:Hint.Text="Quanto o Windows favorece o jogo na divisão da CPU. Alta é o recomendado. Passe o mouse em cada opção para ver o que faz." />
-                    <DataGridComboBoxColumn Header="Núcleos" Width="1.4*"
-                                            ItemsSource="{x:Static vm:Choices.GameCoreModes}"
-                                            SelectedValuePath="Value" DisplayMemberPath="Label"
-                                            SelectedValueBinding="{Binding Cores}"
-                                            EditingElementStyle="{StaticResource ChoiceCombo}"
-                                            v:Hint.Text="Quais núcleos o jogo pode usar. Todos é o recomendado; os apps de fundo já são afastados para o último núcleo." />
-                    <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
-                                            v:Hint.Text="Jogos com anti-cheat (EAC, BattlEye) às vezes bloqueiam a mudança de prioridade. Marcado: o Folga grava a prioridade no registro do Windows (IFEO) e ela vale a partir da próxima vez que o jogo abrir. Nada é injetado no jogo." />
-                    <DataGridCheckBoxColumn Header="DSCP 46" Binding="{Binding MarkDscp, UpdateSourceTrigger=PropertyChanged}" Width="80"
-                                            v:Hint.Text="Marca os pacotes do jogo como tráfego prioritário (DSCP 46, o mesmo de chamadas de voz). Só ajuda se o roteador tiver QoS que respeite a marcação; sem isso, não muda nada. Desligado por padrão." />
-                </DataGrid.Columns>
-            </DataGrid>
-            <TextBlock Style="{StaticResource Text.Empty}"
-                       Visibility="{Binding HasItems, ElementName=GamesGrid, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}"
-                       Text="Nenhum jogo na lista. Com a detecção automática ligada, jogos em tela cheia entram aqui sozinhos; ou adicione um jogo aberto acima." />
-        </Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <StackPanel Margin="0,0,16,0">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="Jogos" Style="{StaticResource Text.Headline}" />
+                    <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe). Jogos fora da lista são achados sozinhos pela detecção automática. Selecione um jogo para ver os ajustes só dele." />
+                </StackPanel>
+
+                <!-- Detecção automática -->
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding AutoDetectEnabled}" Content="Detectar jogos sozinho (tela cheia em primeiro plano + DirectX)"
+                                  ToolTip="Ligado: um app em primeiro plano que cobre o monitor inteiro (tela cheia ou janela sem borda) por 10 s e desenha com DirectX a 20 FPS ou mais vira jogo: o boost liga e ele entra nesta lista como Detectado, para ser reconhecido na hora nas próximas vezes. Sem o Folga como administrador não dá para medir o DirectX, e aí valem só a tela cheia e as exclusões. Só salva com o botão Salvar." />
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Left" Text="Nunca tratar como jogo" Style="{StaticResource Text.Label}" VerticalAlignment="Top" Margin="0,8,12,0" />
+                            <TextBox Text="{Binding ExclusionsText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
+                                     MaxHeight="71" VerticalScrollBarVisibility="Auto"
+                                     ToolTip="Apps que ficam em tela cheia sem ser jogo: navegadores, players de vídeo, chamadas, apresentações, launchers. Separe por vírgula; aceita * (ex.: mpc-hc*.exe). Apps com regra em Segundo plano já ficam de fora sem estar aqui. Remover um jogo Detectado da lista o coloca aqui ao salvar." />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Adicionar a partir de um app aberto -->
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Adicionar um jogo aberto" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
+                        <Button DockPanel.Dock="Right" Content="Adicionar" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
+                                Command="{Binding AddRunningCommand}"
+                                ToolTip="Cria um perfil com o .exe do app escolhido na lista. Depois confira o nome e clique em Salvar." />
+                        <Button DockPanel.Dock="Right" Content="Atualizar lista" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
+                                Command="{Binding RefreshRunningCommand}"
+                                ToolTip="Busca os apps que estão com janela aberta agora. Abra o jogo antes de clicar." />
+                        <ComboBox ItemsSource="{Binding Running}" SelectedItem="{Binding SelectedRunning}" DisplayMemberPath="Label"
+                                  ToolTip="Apps com janela aberta: título da janela · nome do .exe. É o jeito mais fácil de descobrir o .exe de um jogo." />
+                    </DockPanel>
+                </Border>
+
+                <Grid>
+                    <DataGrid x:Name="GamesGrid" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
+                              v:Wheel.PassToPage="True" MinHeight="120">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64"
+                                                    v:Hint.Text="Desmarcado: o perfil fica guardado, mas o Folga ignora o jogo." />
+                            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"
+                                                v:Hint.Text="Nome que aparece na tela Agora. Só para você identificar; não afeta a detecção." />
+                            <DataGridTextColumn Header="Origem" Binding="{Binding Origin, Mode=OneWay}" IsReadOnly="True" Width="96"
+                                                v:Hint.Text="Manual: você adicionou. Detectado: o Folga achou em tela cheia e lembrou. Para o Folga não detectar de novo, remova (vai para as exclusões) ou desmarque Ativo." />
+                            <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
+                                                v:Hint.Text="Nome do .exe do jogo; vários separados por vírgula. * vale qualquer trecho (PioneerGame*.exe pega PioneerGame-Win64-Shipping.exe). Não diferencia maiúsculas. Dê dois cliques para editar." />
+                            <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"
+                                                    ItemsSource="{x:Static vm:Choices.GamePriorities}"
+                                                    SelectedValuePath="Value" DisplayMemberPath="Label"
+                                                    SelectedValueBinding="{Binding Priority}"
+                                                    EditingElementStyle="{StaticResource ChoiceCombo}"
+                                                    v:Hint.Text="Quanto o Windows favorece o jogo na divisão da CPU. Alta é o recomendado. Passe o mouse em cada opção para ver o que faz." />
+                            <DataGridComboBoxColumn Header="Núcleos" Width="1.4*"
+                                                    ItemsSource="{x:Static vm:Choices.GameCoreModes}"
+                                                    SelectedValuePath="Value" DisplayMemberPath="Label"
+                                                    SelectedValueBinding="{Binding Cores}"
+                                                    EditingElementStyle="{StaticResource ChoiceCombo}"
+                                                    v:Hint.Text="Quais núcleos o jogo pode usar. Todos é o recomendado; os apps de fundo já são afastados para o último núcleo." />
+                            <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
+                                                    v:Hint.Text="Jogos com anti-cheat (EAC, BattlEye) às vezes bloqueiam a mudança de prioridade. Marcado: o Folga grava a prioridade no registro do Windows (IFEO) e ela vale a partir da próxima vez que o jogo abrir. Nada é injetado no jogo." />
+                            <DataGridCheckBoxColumn Header="DSCP 46" Binding="{Binding MarkDscp, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                                                    v:Hint.Text="Marca os pacotes do jogo como tráfego prioritário (DSCP 46, o mesmo de chamadas de voz). Só ajuda se o roteador tiver QoS que respeite a marcação; sem isso, não muda nada. Desligado por padrão." />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Style="{StaticResource Text.Empty}"
+                               Visibility="{Binding HasItems, ElementName=GamesGrid, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}"
+                               Text="Nenhum jogo na lista. Com a detecção automática ligada, jogos em tela cheia entram aqui sozinhos; ou adicione um jogo aberto acima." />
+                </Grid>
+
+                <!-- Ajustes do jogo selecionado -->
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,16,0,0" DataContext="{Binding SelectedRow}"
+                        Visibility="{Binding Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding DataContext.SelectedTitle, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource Text.Section}"
+                                   ToolTip="Ajustes só deste jogo. &quot;Padrão&quot; segue a configuração geral das outras telas; o resto vale só quando este jogo está aberto. Com dois jogos abertos, valem os ajustes do primeiro que abriu." />
+                        <TextBlock Text="Padrão segue as telas Segundo plano, Rede, Overlay e Sistema. Só vale depois de Salvar." Style="{StaticResource Text.Label}" Margin="0,4,0,12" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Segundo plano -->
+                            <StackPanel>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Text="Apps de fundo" Style="{StaticResource FieldLabel}" Width="120" />
+                                    <ComboBox Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.HoldBackgroundChoices}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding HoldBackground}"
+                                              ToolTip="Se o Folga segura os apps de fundo (navegador, Discord, launchers) com este jogo aberto. Não segurar: só o jogo ganha prioridade. Passe o mouse em cada opção." />
+                                </DockPanel>
+                                <TextBlock Text="Regras que valem com este jogo" Style="{StaticResource Text.Label}" Margin="0,12,0,6"
+                                           ToolTip="Desmarque um app para o Folga não mexer nele só neste jogo (ex.: Discord num jogo em que você usa voz). As regras em si ficam na tela Segundo plano." />
+                                <TextBlock Text="Nenhuma regra na tela Segundo plano: não há app de fundo para segurar." Style="{StaticResource Text.Label}" TextWrapping="Wrap"
+                                           Visibility="{Binding HasItems, ElementName=RulesList, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}" />
+                                <ItemsControl x:Name="RulesList" ItemsSource="{Binding DataContext.SelectedRules, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              IsEnabled="{Binding HoldsBackground}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:RuleToggle}">
+                                            <CheckBox IsChecked="{Binding Applies}" Content="{Binding Name}" Margin="0,0,16,6"
+                                                      ToolTip="Marcado: este app é segurado com este jogo aberto, pela regra da tela Segundo plano. Desmarcado: o Folga deixa este app em paz só neste jogo." />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- Energia, overlay, rede e memória -->
+                            <StackPanel Grid.Column="2">
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock DockPanel.Dock="Left" Text="Plano de energia" Style="{StaticResource FieldLabel}" Width="150" />
+                                    <ComboBox Style="{StaticResource ChoiceCombo}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PowerScheme}"
+                                              ItemsSource="{Binding DataContext.PowerChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              ToolTip="Plano de energia só com este jogo aberto; ao fechar o jogo volta o plano de antes. Padrão usa o plano da tela Sistema. Passe o mouse em cada opção." />
+                                </DockPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock DockPanel.Dock="Left" Text="Overlay" Style="{StaticResource FieldLabel}" Width="150" />
+                                    <ComboBox Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.OverlayChoices}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Overlay}"
+                                              ToolTip="Mostrar ou esconder o overlay do RTSS só neste jogo. O que aparece no overlay (itens, cores, canto) continua o da tela Overlay." />
+                                </DockPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock DockPanel.Dock="Left" Text="Windows Update" Style="{StaticResource FieldLabel}" Width="150" />
+                                    <ComboBox Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.PauseUpdateChoices}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PauseWindowsUpdate}"
+                                              ToolTip="Pausar ou não o Windows Update e os downloads em segundo plano só com este jogo aberto. Tudo é retomado quando o jogo fecha." />
+                                </DockPanel>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Text="Limpar standby list" Style="{StaticResource FieldLabel}" Width="150" />
+                                    <ComboBox Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.PurgeStandbyChoices}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PurgeStandby}"
+                                              ToolTip="Limpar ou não o cache de arquivos da RAM quando a RAM livre cai abaixo do limite, só com este jogo aberto. O limite continua o da tela Segundo plano." />
+                                </DockPanel>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </UserControl>

@@ -20,14 +20,31 @@ public sealed partial class GameRowViewModel : ObservableObject
     [ObservableProperty] private bool _useIfeoFallback = true;
     [ObservableProperty] private bool _markDscp;
 
+    // Ajustes próprios do jogo (painel abaixo da tabela).
+    [ObservableProperty] private OverrideChoice _holdBackground;
+    [ObservableProperty] private string _powerScheme = DefaultScheme;
+    [ObservableProperty] private OverrideChoice _overlay;
+    [ObservableProperty] private OverrideChoice _pauseWindowsUpdate;
+    [ObservableProperty] private OverrideChoice _purgeStandby;
+
+    /// <summary>Valor da lista de planos para "segue a tela Sistema" (o ComboBox não lida bem com null).</summary>
+    public const string DefaultScheme = "*";
+
     public bool AutoDetected { get; init; }
     public string Origin => AutoDetected ? "Detectado" : "Manual";
+    public List<string> SkipRules { get; set; } = [];
+    public bool HoldsBackground => HoldBackground != OverrideChoice.Off;
+
+    partial void OnHoldBackgroundChanged(OverrideChoice value) => OnPropertyChanged(nameof(HoldsBackground));
 
     public static GameRowViewModel From(GameProfile p) => new()
     {
         Enabled = p.Enabled, Name = p.Name, ExecutablesText = string.Join(", ", p.Executables),
         Priority = p.Priority, Cores = p.Cores, UseIfeoFallback = p.UseIfeoFallback, MarkDscp = p.MarkDscp,
         AutoDetected = p.AutoDetected,
+        HoldBackground = Choices.ToChoice(p.HoldBackground), SkipRules = [.. p.SkipRules],
+        PowerScheme = p.PowerScheme ?? DefaultScheme,
+        Overlay = Choices.ToChoice(p.Overlay), PauseWindowsUpdate = Choices.ToChoice(p.PauseWindowsUpdate), PurgeStandby = Choices.ToChoice(p.PurgeStandby),
     };
 
     public GameProfile ToModel() => new()
@@ -35,10 +52,21 @@ public sealed partial class GameRowViewModel : ObservableObject
         Enabled = Enabled, Name = Name.Trim(), Executables = SplitList(ExecutablesText),
         Priority = Priority, Cores = Cores, UseIfeoFallback = UseIfeoFallback, MarkDscp = MarkDscp,
         AutoDetected = AutoDetected,
+        HoldBackground = Choices.FromChoice(HoldBackground), SkipRules = [.. SkipRules],
+        PowerScheme = PowerScheme == DefaultScheme ? null : PowerScheme,
+        Overlay = Choices.FromChoice(Overlay), PauseWindowsUpdate = Choices.FromChoice(PauseWindowsUpdate), PurgeStandby = Choices.FromChoice(PurgeStandby),
     };
 
     public static List<string> SplitList(string text) =>
         text.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+}
+
+/// <summary>Uma regra de segundo plano no painel do jogo: marcada = vale com este jogo.</summary>
+public sealed partial class RuleToggle(string name, bool applies, Action<string, bool> changed) : ObservableObject
+{
+    public string Name { get; } = name;
+    [ObservableProperty] private bool _applies = applies;
+    partial void OnAppliesChanged(bool value) => changed(Name, value);
 }
 
 public sealed record RunningProcess(int Pid, string ExeName, string Title, string? Path)
@@ -56,11 +84,45 @@ public sealed partial class JogosViewModel : ObservableObject
     public JogosViewModel(AppServices services)
     {
         _services = services;
+        LoadPowerChoices();
         Reload();
         services.Detector.Detected += game => Application.Current?.Dispatcher.BeginInvoke(() => OnDetected(game));
     }
 
     public ObservableCollection<GameRowViewModel> Rows { get; } = [];
+
+    /// <summary>Planos para o painel do jogo: padrão, não trocar e os planos do PC.</summary>
+    public ObservableCollection<Choice<string>> PowerChoices { get; } = [];
+
+    /// <summary>Regras de segundo plano do jogo selecionado, marcadas as que valem com ele.</summary>
+    public ObservableCollection<RuleToggle> SelectedRules { get; } = [];
+
+    public string SelectedTitle => SelectedRow is { } r ? $"Ajustes de {r.Name}" : "";
+
+    partial void OnSelectedRowChanged(GameRowViewModel? value)
+    {
+        OnPropertyChanged(nameof(SelectedTitle));
+        SelectedRules.Clear();
+        if (value is null) return;
+        foreach (var rule in _services.Engine.Config.Background)
+            SelectedRules.Add(new RuleToggle(rule.Name, !value.SkipRules.Contains(rule.Name, StringComparer.OrdinalIgnoreCase), (name, applies) =>
+            {
+                value.SkipRules.RemoveAll(n => n.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (!applies) value.SkipRules.Add(name);
+            }));
+    }
+
+    private void LoadPowerChoices()
+    {
+        var schemes = _services.Power.List();
+        var general = _services.Engine.Config.Power.SchemeDuringGame;
+        var generalName = general is { } g ? schemes.FirstOrDefault(s => s.Id == g)?.Name ?? "plano removido" : "não trocar";
+        PowerChoices.Add(new Choice<string>(GameRowViewModel.DefaultScheme, $"Padrão ({generalName})",
+            "Usa o plano escolhido na tela Sistema, como os outros jogos."));
+        PowerChoices.Add(new Choice<string>("", "Não trocar", "Com este jogo o plano de energia continua o que está ativo no Windows."));
+        foreach (var s in schemes)
+            PowerChoices.Add(new Choice<string>(s.Id.ToString(), s.Name, $"Com este jogo o Windows usa \"{s.Name}\"; ao fechar, volta o plano de antes."));
+    }
     public ObservableCollection<RunningProcess> Running { get; } = [];
 
     [ObservableProperty] private GameRowViewModel? _selectedRow;

@@ -190,7 +190,8 @@ public sealed partial class OverlayViewModel : ObservableObject
     [RelayCommand]
     private void Save()
     {
-        _services.Engine.UpdateOverlay(ToModel());
+        var settings = ToModel();
+        _services.Engine.ChangeSetting(c => c.Overlay = settings);
         _services.SaveEngineConfig();
         Reload();
         ShowRtss(_services.Overlay.State);

@@ -116,7 +116,7 @@
                            ToolTip="Todas as partidas medidas, da mais nova para a mais velha (até 300). Ficam em %LocalAppData%\Folga\sessions.json." />
 
                 <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" IsReadOnly="True"
-                          PreviewMouseWheel="PassWheelToPage" MinHeight="120">
+                          v:Wheel.PassToPage="True" MinHeight="120">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Quando" Binding="{Binding When}" Width="96"
                                             v:Hint.Text="Dia e hora em que a partida começou." />

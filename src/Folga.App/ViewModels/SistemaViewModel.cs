@@ -34,7 +34,105 @@ public sealed partial class SistemaViewModel : ObservableObject
         _services = services;
         Drives = [.. DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady).Select(d => d.Name[..2].ToUpperInvariant())];
         IsAdmin = Environment.IsPrivilegedProcess;
+        IsInstalledCopy = AppInstaller.IsInstalledCopy(_exePath);
+        InstallText = IsInstalledCopy
+            ? $"Instalado em {AppInstaller.InstallDir} · versão {Updater.Current}."
+            : AppInstaller.IsInstalled
+                ? $"Este Folga roda de {_exePath}, mas já existe um instalado em {AppInstaller.InstallDir}. Instalar troca o instalado por este."
+                : $"Este Folga roda de {_exePath}, sem instalar.";
+        _autoCheckUpdates = services.Engine.Config.Updates.AutoCheck;
+        ShowUpdate(services.Updates.Last);
+        services.Updates.Checked += check => Application.Current?.Dispatcher.BeginInvoke(() => ShowUpdate(check));
         _ = LoadAsync();
+    }
+
+    // ---- instalação e atualizações ----
+
+    public bool IsInstalledCopy { get; }
+    public bool CanInstall => !IsInstalledCopy;
+    public string InstallText { get; }
+
+    [ObservableProperty] private bool _autoCheckUpdates;
+    [ObservableProperty] private string _updateText = "";
+    [ObservableProperty] private bool _updateAvailable;
+    [ObservableProperty] private string _updateButton = "";
+    [ObservableProperty] private bool _updating;
+    private UpdateInfo? _available;
+
+    partial void OnAutoCheckUpdatesChanged(bool value)
+    {
+        _services.Engine.ChangeSetting(c => c.Updates.AutoCheck = value);
+        _services.SaveEngineConfig();
+    }
+
+    private void ShowUpdate(UpdateCheck? check)
+    {
+        _available = check?.Status == UpdateStatus.Available ? check.Info : null;
+        UpdateAvailable = _available is not null && IsInstalledCopy;
+        UpdateButton = _available is { } a ? $"Atualizar para {a.Version}" : "";
+        UpdateText = check?.Status switch
+        {
+            null => $"Versão {Updater.Current}. Ainda não procurou atualização desde que abriu.",
+            UpdateStatus.UpToDate => $"Versão {Updater.Current}: é a mais nova.",
+            UpdateStatus.NoReleases => $"Versão {Updater.Current}. Nenhuma versão publicada no GitHub ainda.",
+            UpdateStatus.Available when !IsInstalledCopy => $"Folga {_available!.Version} disponível. Instale o Folga para atualizar por aqui, ou baixe em {_services.Updates.Updater.ReleasesPage}.",
+            UpdateStatus.Available => $"Folga {_available!.Version} disponível (você tem a {Updater.Current}).",
+            _ => $"Versão {Updater.Current}. Não deu para procurar: {check.Message}.",
+        };
+    }
+
+    private static App CurrentApp => (App)Application.Current;
+
+    [RelayCommand]
+    private async Task Install()
+    {
+        if (_services.Engine.GetState().SessionActive) { Status = "Feche o jogo antes de instalar: o Folga reabre e o boost seria refeito no meio da partida."; return; }
+        try
+        {
+            Status = "Instalando...";
+            var installed = await Task.Run(() => AppInstaller.Install(_exePath, Updater.Current.ToString()));
+            Log.Info($"Folga instalado em {installed}");
+            CurrentApp.RestartInto(installed);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Status = $"Não deu para instalar: {ex.Message}";
+            Log.Warn($"Instalação: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void Uninstall() => CurrentApp.AskAndUninstall();
+
+    [RelayCommand]
+    private async Task CheckUpdates()
+    {
+        UpdateText = "Procurando...";
+        ShowUpdate(await _services.Updates.CheckNowAsync());
+    }
+
+    [RelayCommand]
+    private async Task ApplyUpdate()
+    {
+        if (_available is not { } info || Updating) return;
+        if (_services.Engine.GetState().SessionActive) { Status = "Feche o jogo antes de atualizar: o Folga reabre e o boost seria refeito no meio da partida."; return; }
+        Updating = true;
+        try
+        {
+            var progress = new Progress<double>(p => UpdateText = $"Baixando o Folga {info.Version}: {p:P0}");
+            await _services.Updates.Updater.DownloadAndApplyAsync(info, _exePath, progress);
+            Log.Info($"Atualizado para {info.Version}; reabrindo");
+            CurrentApp.RestartInto(_exePath);
+        }
+        catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException or TaskCanceledException)
+        {
+            UpdateText = $"Atualização não instalada: {ex.Message}";
+            Log.Warn($"Atualização: {ex.Message}");
+        }
+        finally
+        {
+            Updating = false;
+        }
     }
 
     public bool IsAdmin { get; }
@@ -209,7 +307,8 @@ public sealed partial class SistemaViewModel : ObservableObject
 
         if (PowerScheme != _services.Engine.Config.Power.SchemeDuringGame)
         {
-            _services.Engine.UpdatePower(new PowerSettings { SchemeDuringGame = PowerScheme });
+            var scheme = PowerScheme;
+            _services.Engine.ChangeSetting(c => c.Power = new PowerSettings { SchemeDuringGame = scheme });
             _services.SaveEngineConfig();
         }
 

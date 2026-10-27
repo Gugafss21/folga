@@ -139,7 +139,7 @@
                 </DockPanel>
 
                 <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
-                          PreviewMouseWheel="PassWheelToPage">
+                          v:Wheel.PassToPage="True">
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Header="Mostrar" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="76"
                                                 v:Hint.Text="Marcado: o número aparece no overlay." />

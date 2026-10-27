@@ -71,9 +71,12 @@ public sealed class OverlayService : IDisposable
 
     private OverlayState Update()
     {
-        var settings = _engine.Config.Overlay;
+        var config = _engine.Config;
+        var settings = config.Overlay;
         var engine = _engine.GetState();
-        if (!settings.Enabled || (settings.OnlyDuringGame && !engine.SessionActive))
+        // Com jogo aberto, o perfil dele pode ligar ou desligar o overlay só para ele.
+        var enabled = engine.SessionActive ? config.OverlayFor(engine.Games[0].Profile) : settings.Enabled;
+        if (!enabled || (settings.OnlyDuringGame && !engine.SessionActive))
         {
             if (_showing) _osd.Release();
             _showing = false;

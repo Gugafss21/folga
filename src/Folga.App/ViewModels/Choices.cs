@@ -7,6 +7,9 @@ namespace Folga.App.ViewModels;
 /// <summary>Opção de lista suspensa; Hint aparece ao passar o mouse sobre ela.</summary>
 public sealed record Choice<T>(T Value, string Label, string Hint);
 
+/// <summary>Ajuste por jogo: Default segue a configuração geral (null no perfil).</summary>
+public enum OverrideChoice { Default, On, Off }
+
 /// <summary>Prioridade de uma regra de fundo; Unchanged = não mexer.</summary>
 public enum PriorityChoice { Unchanged, Idle, BelowNormal, Normal, AboveNormal, High }
 
@@ -67,6 +70,37 @@ public static class Choices
         new(PagefileMode.None, "Desligada",
             "Sem arquivo de paginação. Não deixa o jogo mais rápido: o limite de memória passa a ser só a RAM, e quando ela enche o jogo fecha. Não recomendado com 16 GB."),
     ];
+
+    public static IReadOnlyList<Choice<OverrideChoice>> HoldBackgroundChoices { get; } =
+    [
+        new(OverrideChoice.Default, "Padrão (segurar)", "Segura os apps de fundo pelas regras da tela Segundo plano, como nos outros jogos."),
+        new(OverrideChoice.On, "Segurar", "Segura os apps de fundo pelas regras marcadas abaixo."),
+        new(OverrideChoice.Off, "Não segurar", "Com este jogo, nenhum app de fundo é mexido: só o jogo ganha prioridade. Útil se o jogo depende de um app (launcher, voz) que fica lento quando segurado."),
+    ];
+
+    public static IReadOnlyList<Choice<OverrideChoice>> OverlayChoices { get; } =
+    [
+        new(OverrideChoice.Default, "Padrão", "Segue a opção \"Mostrar o overlay no jogo\" da tela Overlay."),
+        new(OverrideChoice.On, "Mostrar", "Mostra o overlay neste jogo, mesmo com ele desligado na tela Overlay."),
+        new(OverrideChoice.Off, "Esconder", "Não mostra o overlay neste jogo (ex.: o jogo já tem contador de FPS próprio)."),
+    ];
+
+    public static IReadOnlyList<Choice<OverrideChoice>> PauseUpdateChoices { get; } =
+    [
+        new(OverrideChoice.Default, "Padrão", "Segue a opção de pausar o Windows Update da tela Rede."),
+        new(OverrideChoice.On, "Pausar", "Pausa o Windows Update e os downloads em segundo plano com este jogo aberto."),
+        new(OverrideChoice.Off, "Não pausar", "Deixa o Windows Update baixar normalmente com este jogo (ex.: jogo offline em que o ping não importa)."),
+    ];
+
+    public static IReadOnlyList<Choice<OverrideChoice>> PurgeStandbyChoices { get; } =
+    [
+        new(OverrideChoice.Default, "Padrão", "Segue a opção de limpar a standby list da tela Segundo plano."),
+        new(OverrideChoice.On, "Limpar", "Limpa o cache de arquivos da RAM quando a RAM livre cai abaixo do limite, com este jogo aberto."),
+        new(OverrideChoice.Off, "Não limpar", "Não mexe no cache de arquivos com este jogo. Use se o jogo engasgar logo depois das limpezas."),
+    ];
+
+    public static OverrideChoice ToChoice(bool? value) => value switch { true => OverrideChoice.On, false => OverrideChoice.Off, _ => OverrideChoice.Default };
+    public static bool? FromChoice(OverrideChoice choice) => choice switch { OverrideChoice.On => true, OverrideChoice.Off => false, _ => null };
 
     public static PriorityChoice From(PriorityLevel? level) =>
         level is { } l ? (PriorityChoice)((int)l + 1) : PriorityChoice.Unchanged;

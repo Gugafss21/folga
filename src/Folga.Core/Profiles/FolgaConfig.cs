@@ -40,7 +40,26 @@ public sealed class GameProfile
     /// <summary>Perfil criado pela detecção automática (tela cheia + DirectX), não à mão.</summary>
     public bool AutoDetected { get; set; }
 
+    // Ajustes próprios do jogo. null = vale a configuração geral.
+
+    /// <summary>false: com este jogo, nenhum app de fundo é segurado.</summary>
+    public bool? HoldBackground { get; set; }
+
+    /// <summary>Regras de segundo plano (pelo nome) que não valem com este jogo (ex.: Discord).</summary>
+    public List<string> SkipRules { get; set; } = [];
+
+    /// <summary>null = o plano geral da tela Sistema; "" = não trocar; senão, o GUID do plano.</summary>
+    public string? PowerScheme { get; set; }
+
+    public bool? Overlay { get; set; }
+    public bool? PauseWindowsUpdate { get; set; }
+    public bool? PurgeStandby { get; set; }
+
     public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
+
+    /// <summary>A regra de segundo plano vale com este jogo?</summary>
+    public bool AppliesRule(BackgroundRule rule) =>
+        HoldBackground != false && !SkipRules.Contains(rule.Name, StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class BackgroundRule
@@ -99,6 +118,12 @@ public sealed class AutoDetectSettings
     public List<string> Exclusions { get; set; } = [.. DefaultConfig.AutoDetectExclusions];
 }
 
+public sealed class UpdateSettings
+{
+    /// <summary>Procura versão nova no GitHub 1 min depois de abrir e a cada 12 h. Instalar é sempre com um clique.</summary>
+    public bool AutoCheck { get; set; } = true;
+}
+
 public sealed class PowerSettings
 {
     /// <summary>Plano de energia durante o jogo; null = não trocar. Ao fechar o jogo volta o plano de antes.</summary>
@@ -125,9 +150,22 @@ public sealed class FolgaConfig
     public AutoDetectSettings AutoDetect { get; set; } = new();
     public Overlay.OverlaySettings Overlay { get; set; } = new();
     public PowerSettings Power { get; set; } = new();
+    public UpdateSettings Updates { get; set; } = new();
 
     public GameProfile? FindGame(string exe) => Games.FirstOrDefault(g => g.Matches(exe));
     public BackgroundRule? FindRule(string exe) => Background.FirstOrDefault(r => r.Matches(exe));
+
+    /// <summary>Plano de energia com este jogo: o do perfil, ou o geral; null = não trocar.</summary>
+    public Guid? PowerSchemeFor(GameProfile? game) => game?.PowerScheme switch
+    {
+        null => Power.SchemeDuringGame,
+        "" => null,
+        var id => Guid.TryParse(id, out var g) ? g : Power.SchemeDuringGame,
+    };
+
+    public bool PauseWindowsUpdateFor(GameProfile? game) => game?.PauseWindowsUpdate ?? Network.PauseWindowsUpdate;
+    public bool PurgeStandbyFor(GameProfile? game) => game?.PurgeStandby ?? Memory.PurgeStandbyList;
+    public bool OverlayFor(GameProfile? game) => game?.Overlay ?? Overlay.Enabled;
 
     /// <summary>O .exe já tem perfil, ativo ou não (desativado = o usuário não quer boost nele).</summary>
     public bool IsKnownGame(string exe) => Games.Any(g => ExeMatcher.MatchesAny(g.Executables, exe));

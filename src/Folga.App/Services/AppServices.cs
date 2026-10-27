@@ -27,6 +27,7 @@ public sealed class AppServices : IDisposable
     public required AutoGameDetector Detector { get; init; }
     public required OverlayService Overlay { get; init; }
     public required IPowerPlan Power { get; init; }
+    public required UpdateService Updates { get; init; }
     public required RestartTracker Restart { get; init; }
 
     public static AppServices Create(string? configPath = null)
@@ -84,6 +85,7 @@ public sealed class AppServices : IDisposable
             Detector = detector,
             Overlay = new OverlayService(engine, telemetry, memory),
             Power = power,
+            Updates = new UpdateService(engine),
             Restart = new RestartTracker(RestartTracker.DefaultPath),
         };
     }
@@ -94,6 +96,7 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         Detector.Dispose();
+        Updates.Dispose();
         Overlay.Dispose();
         Engine.Dispose();
         Telemetry.Dispose();

@@ -6,6 +6,7 @@ using Folga.App.Services;
 using Folga.App.ViewModels;
 using Folga.Core.Logging;
 using Folga.Core.Native;
+using Folga.Core.SystemSettings;
 using H.NotifyIcon;
 
 namespace Folga.App;
@@ -20,6 +21,7 @@ public partial class App : Application
     private MainWindow? _window;
     private TaskbarIcon? _tray;
     private MenuItem? _boostItem;
+    private Version? _notifiedVersion;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -38,13 +40,24 @@ public partial class App : Application
             {
                 MessageBox.Show("O Folga já está aberto (em outra sessão do Windows). Procure o ícone na bandeja.", "Folga");
             }
+            if (e.Args.Contains(AppInstaller.UninstallArgument, StringComparer.OrdinalIgnoreCase))
+                MessageBox.Show("Para desinstalar, feche o Folga pela bandeja (Sair) e tente de novo.", "Folga");
             Shutdown();
             return;
         }
-        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
-        ThreadPool.RegisterWaitForSingleObject(_showSignal, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, Timeout.Infinite, executeOnlyOnce: false);
 
         Log.Init(Log.DefaultDirectory);
+        if (Environment.ProcessPath is { } exe) AppInstaller.CleanUpOldExe(exe);
+
+        // Configurações > Aplicativos instalados > Desinstalar abre o Folga com --uninstall.
+        if (e.Args.Contains(AppInstaller.UninstallArgument, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!AskAndUninstall()) Shutdown();
+            return;
+        }
+
+        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
+        ThreadPool.RegisterWaitForSingleObject(_showSignal, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, Timeout.Infinite, executeOnlyOnce: false);
 
         // Dicas: aparecem rápido e ficam na tela enquanto o mouse estiver em cima (o padrão some em 5 s).
         ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(400));
@@ -68,6 +81,11 @@ public partial class App : Application
         _services.Engine.Start();
         _services.Detector.Start();
         _services.Overlay.Start();
+        _services.Updates.Checked += check => Dispatcher.BeginInvoke(() => NotifyUpdate(check));
+        _services.Updates.Start();
+        // Depois de uma atualização, Aplicativos instalados passa a mostrar a versão nova.
+        if (Environment.ProcessPath is { } path && AppInstaller.IsInstalledCopy(path))
+            AppInstaller.RegisterUninstall(Updater.Current.ToString());
 
         var viewModel = new MainViewModel(_services);
         _window = new MainWindow { DataContext = viewModel };
@@ -76,6 +94,57 @@ public partial class App : Application
         UpdateTray();
 
         if (!e.Args.Contains("--minimized", StringComparer.OrdinalIgnoreCase)) ShowWindow();
+    }
+
+    /// <summary>
+    /// Pergunta e desinstala: desfaz tudo o que o Folga mudou (inclusive o IFEO), tira do Windows e fecha.
+    /// Devolve false se a pessoa cancelou.
+    /// </summary>
+    public bool AskAndUninstall()
+    {
+        var answer = MessageBox.Show(
+            "Desinstalar o Folga?\n\n" +
+            "Sim: desinstala e apaga também configurações, logs e histórico de partidas.\n" +
+            "Não: desinstala, mas guarda seus dados para uma instalação futura.\n" +
+            "Cancelar: não faz nada.\n\n" +
+            "Em todos os casos, tudo o que o Folga mudou no Windows é desfeito antes.",
+            "Desinstalar o Folga", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+        if (answer == MessageBoxResult.Cancel) return false;
+
+        Log.Info("Desinstalando o Folga");
+        var services = _services ?? AppServices.Create();
+        if (_services is null) services.Engine.Start(); // recupera o que tiver sobrado no diário
+        services.Engine.RestoreAll();
+        services.Dispose();
+        _services = null;
+        var folders = AppInstaller.Uninstall(removeData: answer == MessageBoxResult.Yes);
+        MessageBox.Show("O Folga foi desinstalado e tudo o que ele mudou foi desfeito.", "Folga");
+        AppInstaller.DeleteAfterExit(folders); // só agora: o aviso acima espera o clique, e o .exe precisa ter fechado
+        if (_window is not null) _window.AllowClose = true;
+        Shutdown();
+        return true;
+    }
+
+    /// <summary>
+    /// Fecha este Folga (desfazendo o que estiver aplicado) e abre outro .exe no lugar: a cópia recém-instalada
+    /// ou a versão nova depois de uma atualização. A trava de instância única é solta antes, senão o novo
+    /// só traria esta janela para a frente.
+    /// </summary>
+    public void RestartInto(string exePath)
+    {
+        Log.Info($"Reabrindo o Folga a partir de {exePath}");
+        _services?.Dispose();
+        _services = null;
+        _tray?.Dispose();
+        _tray = null;
+        _showSignal?.Dispose();
+        _showSignal = null;
+        _singleInstance?.ReleaseMutex();
+        _singleInstance?.Dispose();
+        _singleInstance = null;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exePath) { UseShellExecute = true });
+        if (_window is not null) _window.AllowClose = true;
+        Shutdown();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -126,6 +195,14 @@ public partial class App : Application
         };
         // Sem modo de eficiência: com o jogo usando toda a CPU, o Folga precisa responder rápido aos eventos.
         _tray.ForceCreate(enablesEfficiencyMode: false);
+    }
+
+    /// <summary>Aviso na bandeja, uma vez por versão nova.</summary>
+    private void NotifyUpdate(UpdateCheck check)
+    {
+        if (check.Status != UpdateStatus.Available || check.Info!.Version == _notifiedVersion || _tray is null) return;
+        _notifiedVersion = check.Info.Version;
+        _tray.ShowNotification($"Folga {check.Info.Version} disponível", "Abra o Folga e vá em Sistema para atualizar com um clique.");
     }
 
     private void UpdateTray()

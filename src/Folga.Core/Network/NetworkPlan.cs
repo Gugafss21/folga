@@ -26,12 +26,14 @@ public static class NetworkPlanner
     public const string PolicyPrefix = "Folga-";
     public const int ExpeditedForwarding = 46; // DSCP EF: o mesmo de voz sobre IP
 
-    /// <param name="gameExes">.exe reais dos jogos abertos (para a marcação DSCP).</param>
+    /// <param name="gameExes">.exe reais dos jogos abertos (para a marcação DSCP). O primeiro manda nos ajustes por jogo.</param>
     public static NetworkPlan Build(FolgaConfig config, IEnumerable<(GameProfile Profile, string Exe)> gameExes)
     {
+        var games = gameExes.ToList();
+        var primary = games.Count > 0 ? games[0].Profile : null;
         var policies = new Dictionary<string, QosPolicy>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var rule in config.Background.Where(r => r.Enabled && r.UploadLimitKbps > 0))
+        foreach (var rule in config.Background.Where(r => r.Enabled && r.UploadLimitKbps > 0 && primary?.AppliesRule(r) != false))
         {
             foreach (var exe in rule.Executables)
             {
@@ -45,9 +47,9 @@ public static class NetworkPlanner
             }
         }
 
-        foreach (var (profile, exe) in gameExes.Where(g => g.Profile.MarkDscp))
+        foreach (var (profile, exe) in games.Where(g => g.Profile.MarkDscp))
             policies[exe] = new QosPolicy($"{PolicyPrefix}dscp-{exe}", exe, null, ExpeditedForwarding);
 
-        return new NetworkPlan(policies.Values.ToList(), config.Network.PauseWindowsUpdate);
+        return new NetworkPlan(policies.Values.ToList(), config.PauseWindowsUpdateFor(primary));
     }
 }

@@ -51,6 +51,36 @@
                     </DockPanel>
                 </Border>
 
+                <TextBlock Text="Instalação e atualizações" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="O Folga é um arquivo só. Instalado, ele fica numa pasta fixa, aparece em Aplicativos instalados do Windows e se atualiza pelo GitHub." />
+
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Instalar neste PC" Style="{StaticResource Button.Plain}" Command="{Binding InstallCommand}"
+                                    Visibility="{Binding CanInstall, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="Copia este Folga.exe para %LocalAppData%\Programs\Folga (pasta só sua, sem mexer em Arquivos de Programas), cria o atalho no Menu Iniciar e o coloca em Configurações &gt; Aplicativos instalados, de onde dá para desinstalar. Se a opção de abrir com o Windows estiver ligada, ela passa a abrir a cópia instalada. O Folga fecha e abre de novo pela cópia instalada; feche o jogo antes." />
+                            <Button DockPanel.Dock="Right" Content="Desinstalar" Style="{StaticResource Button.Plain}" Command="{Binding UninstallCommand}"
+                                    Visibility="{Binding IsInstalledCopy, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="Desfaz tudo o que o Folga mudou no Windows (inclusive a prioridade gravada no registro para jogos com anti-cheat), tira a tarefa de inicialização, o atalho e a entrada de Aplicativos instalados, e apaga a pasta do programa. Pergunta antes se é para apagar também configurações e histórico. É o mesmo que desinstalar por Configurações &gt; Aplicativos." />
+                            <TextBlock Text="{Binding InstallText}" Style="{StaticResource Text.Body}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+                        </DockPanel>
+
+                        <Rectangle Height="1" Fill="{StaticResource LineBrush}" Margin="0,12" />
+
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="{Binding UpdateButton}" Style="{StaticResource Button.Plain}" Command="{Binding ApplyUpdateCommand}" Margin="8,0,0,0"
+                                    Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="Baixa a versão nova do GitHub, confere o hash SHA-256 publicado com ela (se não bater, nada é trocado) e reabre o Folga já atualizado. Suas configurações e o histórico ficam. Feche o jogo antes." />
+                            <Button DockPanel.Dock="Right" Content="Procurar agora" Style="{StaticResource Button.Plain}" Command="{Binding CheckUpdatesCommand}"
+                                    ToolTip="Pergunta ao GitHub agora se existe versão nova do Folga. Só consulta: instalar é com o botão de atualizar." />
+                            <TextBlock Text="{Binding UpdateText}" Style="{StaticResource Text.Body}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+                        </DockPanel>
+                        <CheckBox IsChecked="{Binding AutoCheckUpdates}" Content="Procurar atualizações sozinho" Margin="0,10,0,0"
+                                  ToolTip="Procura versão nova no GitHub 1 minuto depois de abrir e a cada 12 horas, nunca com jogo aberto. Quando acha, avisa na bandeja; instalar é sempre com um clique seu. Vale na hora." />
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="Inicialização" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
                            ToolTip="Como o Folga abre. O boost só funciona com o Folga aberto (na bandeja já basta), então o ideal é ele abrir sozinho com o Windows." />
 

@@ -24,13 +24,24 @@ jobs:
           dotnet publish src/Folga.App -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true -p:DebugType=none -o publish
 
+      # Hash que o Folga confere antes de se atualizar (além do digest que o próprio GitHub calcula).
+      - name: SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash publish/Folga.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Folga.exe" | Set-Content publish/Folga.exe.sha256 -NoNewline -Encoding ascii
+
       - uses: actions/upload-artifact@v4
         with:
           name: Folga
-          path: publish/Folga.exe
+          path: |
+            publish/Folga.exe
+            publish/Folga.exe.sha256
 
       - name: Release (em tag v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/Folga.exe
+          files: |
+            publish/Folga.exe
+            publish/Folga.exe.sha256
