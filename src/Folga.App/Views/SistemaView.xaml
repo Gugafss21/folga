@@ -51,6 +51,21 @@
                     </DockPanel>
                 </Border>
 
+                <TextBlock Text="Inicialização" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="Como o Folga abre. O boost só funciona com o Folga aberto (na bandeja já basta), então o ideal é ele abrir sozinho com o Windows." />
+
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding StartWithWindows}" IsEnabled="{Binding IsAdmin}" Content="Abrir o Folga com o Windows"
+                                  ToolTip="Cria uma tarefa agendada &quot;Folga&quot; que abre o Folga minimizado na bandeja 10 s depois de você entrar no Windows, já como administrador e sem a pergunta do UAC. É o jeito do próprio Windows para isso (a pasta Inicializar pediria confirmação a cada boot). Fica em prioridade normal, sem limite de tempo e funciona na bateria. Para tirar, desmarque e aplique; a tarefa também aparece no Agendador de Tarefas. Se você mudar o Folga.exe de pasta, abra o novo e aplique de novo." />
+                        <TextBlock Text="{Binding StartupNow}" Style="{StaticResource Note}" />
+
+                        <CheckBox IsChecked="{Binding StartMenuShortcut}" Content="Atalho no Menu Iniciar" Margin="0,12,0,0"
+                                  ToolTip="Coloca o atalho &quot;Folga&quot; no Menu Iniciar (procure por Folga). Ao abrir pelo atalho, o Windows pede confirmação de administrador; se o Folga já estiver na bandeja, o atalho só traz a janela dele para a frente. Desmarque e aplique para tirar." />
+                        <TextBlock Text="{Binding ShortcutNow}" Style="{StaticResource Note}" />
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="Memória" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
                            ToolTip="Como o Windows lida com a memória quando a RAM aperta: o arquivo de paginação no disco e a compactação na própria RAM. Com 16 GB e navegador aberto durante o jogo, os dois entram em ação." />
 

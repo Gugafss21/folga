@@ -92,6 +92,43 @@ public sealed class SystemSettingsTests : IDisposable
         Assert.Empty(new RestartTracker(path, boot.AddHours(3)).PendingLabels);                          // reiniciou
     }
 
+    [Fact]
+    public void Tarefa_de_inicializacao_abre_minimizado_como_admin_em_prioridade_normal()
+    {
+        const string exe = @"C:\Jogos & Apps\Folga\Folga.exe";
+        var xml = StartupTask.BuildXml(exe, @"PC\Gustavo");
+        var doc = System.Xml.Linq.XDocument.Parse(xml);
+        System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
+
+        Assert.Equal(exe, StartupTask.CommandOf(xml)); // & escapado e aspas tiradas na volta
+        Assert.Equal("--minimized", doc.Descendants(ns + "Arguments").Single().Value);
+        Assert.Equal("HighestAvailable", doc.Descendants(ns + "RunLevel").Single().Value);
+        Assert.Equal("4", doc.Descendants(ns + "Priority").Single().Value);           // o padrão 7 seria abaixo do normal
+        Assert.Equal("PT0S", doc.Descendants(ns + "ExecutionTimeLimit").Single().Value); // sem o limite padrão de 72 h
+        Assert.Equal(@"PC\Gustavo", doc.Descendants(ns + "LogonTrigger").Single().Element(ns + "UserId")!.Value);
+        Assert.Null(StartupTask.CommandOf("não é xml"));
+    }
+
+    [Fact]
+    public void Mesmo_caminho_ignora_maiusculas_e_ausencia()
+    {
+        Assert.True(StartupTask.SamePath(@"C:\Folga\Folga.exe", @"c:\folga\FOLGA.EXE"));
+        Assert.False(StartupTask.SamePath(null, @"C:\Folga\Folga.exe"));
+        Assert.False(StartupTask.SamePath(@"C:\Velho\Folga.exe", @"C:\Folga\Folga.exe"));
+    }
+
+    [Fact]
+    public void Atalho_criado_aponta_para_o_exe()
+    {
+        var lnk = _dir.File("Folga.lnk");
+        var exe = _dir.File("Folga.exe");
+        File.WriteAllText(exe, "");
+
+        Assert.Null(StartMenuShortcut.Target(lnk));
+        StartMenuShortcut.Create(exe, lnk);
+        Assert.True(StartupTask.SamePath(exe, StartMenuShortcut.Target(lnk)));
+    }
+
     private static (BoostEngine Engine, FakeProcessControl Control, FakeWatcher Watcher) Engine(FakePowerPlan power, Guid? scheme, ChangeJournal journal)
     {
         var control = new FakeProcessControl();

@@ -12,7 +12,10 @@ namespace Folga.App;
 
 public partial class App : Application
 {
+    private const string ShowSignalName = @"Local\Folga.Show";
+
     private Mutex? _singleInstance;
+    private EventWaitHandle? _showSignal;
     private AppServices? _services;
     private MainWindow? _window;
     private TaskbarIcon? _tray;
@@ -25,10 +28,21 @@ public partial class App : Application
         _singleInstance = new Mutex(true, @"Global\Folga.SingleInstance", out var first);
         if (!first)
         {
-            MessageBox.Show("O Folga já está aberto. Procure o ícone na bandeja.", "Folga");
+            // Abrir de novo (atalho, Menu Iniciar) traz a janela do Folga que já está na bandeja.
+            if (EventWaitHandle.TryOpenExisting(ShowSignalName, out var signal))
+            {
+                AllowSetForegroundWindow(-1); // ASFW_ANY: deixa a outra instância vir para a frente
+                using (signal) signal.Set();
+            }
+            else
+            {
+                MessageBox.Show("O Folga já está aberto (em outra sessão do Windows). Procure o ícone na bandeja.", "Folga");
+            }
             Shutdown();
             return;
         }
+        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
+        ThreadPool.RegisterWaitForSingleObject(_showSignal, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, Timeout.Infinite, executeOnlyOnce: false);
 
         Log.Init(Log.DefaultDirectory);
 
@@ -68,6 +82,7 @@ public partial class App : Application
     {
         _services?.Dispose();
         _tray?.Dispose();
+        _showSignal?.Dispose();
         _singleInstance?.Dispose();
         Log.Info("Folga encerrado");
         base.OnExit(e);
@@ -122,6 +137,10 @@ public partial class App : Application
             : state.SessionActive ? $"Folga · {state.Games[0].ProfileName} · {state.HeldProcesses} apps segurados"
             : "Folga · esperando um jogo";
     }
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static partial bool AllowSetForegroundWindow(int processId);
 
     private void ShowWindow()
     {

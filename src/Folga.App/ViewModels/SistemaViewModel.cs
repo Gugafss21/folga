@@ -9,6 +9,7 @@ using Folga.Core.Logging;
 using Folga.Core.Profiles;
 using Folga.Core.SystemSettings;
 using Compression = Folga.Core.SystemSettings.MemoryCompression;
+using Shortcut = Folga.Core.SystemSettings.StartMenuShortcut;
 
 namespace Folga.App.ViewModels;
 
@@ -25,6 +26,8 @@ public sealed partial class SistemaViewModel : ObservableObject
     private PagefileSetting _loadedPagefile = new(PagefileMode.SystemManaged);
     private bool? _loadedCompression;
     private GamingSnapshot? _loadedGaming;
+    private string? _loadedStartupPath, _loadedShortcutTarget;
+    private readonly string _exePath = Environment.ProcessPath ?? "Folga.exe";
 
     public SistemaViewModel(AppServices services)
     {
@@ -43,6 +46,11 @@ public sealed partial class SistemaViewModel : ObservableObject
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private string _restartText = "";
     [ObservableProperty] private bool _restartPending;
+
+    [ObservableProperty] private bool _startWithWindows;
+    [ObservableProperty] private string _startupNow = "";
+    [ObservableProperty] private bool _startMenuShortcut;
+    [ObservableProperty] private string _shortcutNow = "";
 
     [ObservableProperty] private PagefileMode _pagefileMode;
     [ObservableProperty] private string _pagefileDrive = "C:";
@@ -89,6 +97,16 @@ public sealed partial class SistemaViewModel : ObservableObject
         var (pagefile, compression, compressionRunning, gaming, schemes, active) = await Task.Run(() =>
             (Pagefile.Read(), Compression.ReadConfigured(), Compression.IsRunning(), GamingSettings.Read(),
              _services.Power.List(), _services.Power.Active()));
+        (_loadedStartupPath, _loadedShortcutTarget) = await Task.Run(() => (StartupTask.RegisteredPath(), Shortcut.Target()));
+
+        StartWithWindows = _loadedStartupPath is not null;
+        StartupNow = _loadedStartupPath is null ? "Desligado: o Folga só abre quando você abrir."
+            : StartupTask.SamePath(_loadedStartupPath, _exePath) ? "Ligado: abre minimizado na bandeja 10 s depois de entrar no Windows, já como administrador."
+            : $"A tarefa abre outro Folga.exe ({_loadedStartupPath}). Clique em Aplicar para ela abrir este.";
+        StartMenuShortcut = _loadedShortcutTarget is not null;
+        ShortcutNow = _loadedShortcutTarget is null ? "Sem atalho no Menu Iniciar."
+            : StartupTask.SamePath(_loadedShortcutTarget, _exePath) ? "O atalho \"Folga\" está no Menu Iniciar."
+            : $"O atalho aponta para outro Folga.exe ({_loadedShortcutTarget}). Clique em Aplicar para apontar para este.";
 
         var commit = Pagefile.Commit();
         var ramGb = commit.RamBytes / (1024d * 1024 * 1024);
@@ -143,6 +161,24 @@ public sealed partial class SistemaViewModel : ObservableObject
 
         await Task.Run(() =>
         {
+            if (StartWithWindows && !StartupTask.SamePath(_loadedStartupPath, _exePath))
+                Try(messages, "Iniciar com o Windows", () =>
+                {
+                    if (StartupTask.Register(_exePath) is { } error) throw new InvalidOperationException(error);
+                    Log.Info($"Folga vai abrir com o Windows ({_exePath})");
+                });
+            else if (!StartWithWindows && _loadedStartupPath is not null)
+                Try(messages, "Iniciar com o Windows", () =>
+                {
+                    if (StartupTask.Remove() is { } error) throw new InvalidOperationException(error);
+                    Log.Info("Folga não abre mais com o Windows");
+                });
+
+            if (StartMenuShortcut && !StartupTask.SamePath(_loadedShortcutTarget, _exePath))
+                Try(messages, "Atalho", () => Shortcut.Create(_exePath));
+            else if (!StartMenuShortcut && _loadedShortcutTarget is not null)
+                Try(messages, "Atalho", Shortcut.Remove);
+
             if (!Pagefile.Format(desired).SequenceEqual(Pagefile.Format(_loadedPagefile)))
                 Try(messages, "Paginação", () =>
                 {
