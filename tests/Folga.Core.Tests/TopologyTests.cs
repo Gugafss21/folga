@@ -95,6 +95,8 @@ public sealed class SystemInfoTests
     public void Le_a_RAM_pela_SMBIOS_desta_maquina()
     {
         var ram = Diagnostics.SystemInfo.ReadRam();
+        // Máquina virtual (o CI do GitHub) costuma não informar os pentes na SMBIOS.
+        Assert.SkipWhen(ram is null || ram.ConfiguredMhz == 0, "a SMBIOS desta máquina não informa a RAM");
         Assert.NotNull(ram);
         Assert.True(ram.Modules > 0);
         Assert.True(ram.ConfiguredMhz > 0);

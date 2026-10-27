@@ -100,8 +100,13 @@ public sealed class SuspendTests
         {
             var r = control.Resolve(child.Id, "cmd.exe")!;
             Assert.Equal(TweakResult.Ok, control.Write(r, ChangeKind.Suspended, [1]));
-            child.Refresh();
-            Assert.All(child.Threads.Cast<ProcessThread>(), t => Assert.Equal(ThreadWaitReason.Suspended, t.WaitReason));
+            // Thread que estava rodando só para quando passa pelo kernel: espera um pouco antes de conferir.
+            bool AllSuspended()
+            {
+                child.Refresh();
+                return child.Threads.Cast<ProcessThread>().All(t => t.ThreadState == System.Diagnostics.ThreadState.Wait && t.WaitReason == ThreadWaitReason.Suspended);
+            }
+            Assert.True(SpinWait.SpinUntil(AllSuspended, TimeSpan.FromSeconds(2)));
             Assert.Equal(TweakResult.Ok, control.Write(r, ChangeKind.Suspended, [0]));
             child.Refresh();
             Assert.DoesNotContain(child.Threads.Cast<ProcessThread>(), t => t.ThreadState == System.Diagnostics.ThreadState.Wait && t.WaitReason == ThreadWaitReason.Suspended);
