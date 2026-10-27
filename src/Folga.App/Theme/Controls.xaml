@@ -43,6 +43,17 @@
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <!-- Mensagem no meio de uma tabela vazia (por baixo do cabeçalho; não pega cliques). -->
+    <Style x:Key="Text.Empty" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
+        <Setter Property="FontSize" Value="{StaticResource FontBody}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="MaxWidth" Value="460" />
+        <Setter Property="Margin" Value="24,40,24,16" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
     <Style x:Key="Text.Section" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />

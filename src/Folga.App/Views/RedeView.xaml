@@ -23,31 +23,36 @@
         </StackPanel>
 
         <!-- Quem usa a rede agora -->
-        <DataGrid Grid.Row="1" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" IsReadOnly="True">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Header="App" Width="2*"
-                                        v:Hint.Text="Apps que enviaram ou receberam dados no último segundo, do que mais usa para o que menos usa. O jogo aparece em âmbar.">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock x:Name="Name" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsGame}" Value="True">
-                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Processos" Binding="{Binding Processes}" Width="*"
-                                    v:Hint.Text="Quantos processos do app usaram a rede no último segundo (o navegador usa um por aba)." />
-                <DataGridTextColumn Header="Download" Binding="{Binding Download}" Width="*"
-                                    v:Hint.Text="Dados recebidos por segundo. O Folga não limita download: isso exigiria um driver de rede, arriscado com anti-cheat e antivírus." />
-                <DataGridTextColumn Header="Upload" Binding="{Binding Upload}" Width="*"
-                                    v:Hint.Text="Dados enviados por segundo. Upload alto em outro app é a causa mais comum de ping alto no jogo." />
-                <DataGridTextColumn Header="Limite no jogo" Binding="{Binding Limit}" Width="*"
-                                    v:Hint.Text="Limite de upload que o app recebe enquanto um jogo está aberto. Configure na coluna Upload da tela Segundo plano." />
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Row="1">
+            <DataGrid x:Name="RowsGrid" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="App" Width="2*"
+                                            v:Hint.Text="Apps que enviaram ou receberam dados no último segundo, do que mais usa para o que menos usa. O jogo aparece em âmbar.">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock x:Name="Name" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsGame}" Value="True">
+                                        <Setter TargetName="Name" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Processos" Binding="{Binding Processes}" Width="*"
+                                        v:Hint.Text="Quantos processos do app usaram a rede no último segundo (o navegador usa um por aba)." />
+                    <DataGridTextColumn Header="Download" Binding="{Binding Download}" Width="*"
+                                        v:Hint.Text="Dados recebidos por segundo. O Folga não limita download: isso exigiria um driver de rede, arriscado com anti-cheat e antivírus." />
+                    <DataGridTextColumn Header="Upload" Binding="{Binding Upload}" Width="*"
+                                        v:Hint.Text="Dados enviados por segundo. Upload alto em outro app é a causa mais comum de ping alto no jogo." />
+                    <DataGridTextColumn Header="Limite no jogo" Binding="{Binding Limit}" Width="*"
+                                        v:Hint.Text="Limite de upload que o app recebe enquanto um jogo está aberto. Configure na coluna Upload da tela Segundo plano." />
+                </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Style="{StaticResource Text.Empty}"
+                       Visibility="{Binding HasItems, ElementName=RowsGrid, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}"
+                       Text="{Binding EmptyText}" />
+        </Grid>
 
         <TextBlock Grid.Row="2" Text="{Binding MonitorStatus}" Style="{StaticResource Text.Label}" Margin="0,8,0,0" />
 

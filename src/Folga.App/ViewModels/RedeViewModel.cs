@@ -33,6 +33,9 @@ public sealed partial class RedeViewModel : ObservableObject
 
     [ObservableProperty] private bool _pauseWindowsUpdate;
     [ObservableProperty] private string _monitorStatus = "";
+
+    /// <summary>Mensagem da tabela vazia: sem monitor, o motivo; com monitor, ninguém usou a rede.</summary>
+    [ObservableProperty] private string _emptyText = "";
     [ObservableProperty] private string _sessionSummary = "";
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private bool _isVisible;
@@ -60,9 +63,9 @@ public sealed partial class RedeViewModel : ObservableObject
         PauseWindowsUpdate = config.Network.PauseWindowsUpdate;
         var limited = config.Background.Count(r => r.Enabled && r.UploadLimitKbps > 0);
         var marked = config.Games.Count(g => g.Enabled && g.MarkDscp);
-        var parts = new List<string> { $"upload limitado em {limited} apps" };
+        var parts = new List<string> { limited switch { 0 => "nenhum app com upload limitado", 1 => "upload limitado em 1 app", _ => $"upload limitado em {limited} apps" } };
         if (config.Network.PauseWindowsUpdate) parts.Add("Windows Update pausado");
-        if (marked > 0) parts.Add($"tráfego de {marked} jogo(s) marcado com DSCP 46");
+        if (marked > 0) parts.Add(marked == 1 ? "tráfego de 1 jogo marcado com DSCP 46" : $"tráfego de {marked} jogos marcado com DSCP 46");
         SessionSummary = "Durante o jogo: " + string.Join(", ", parts) + ".";
     }
 
@@ -75,12 +78,15 @@ public sealed partial class RedeViewModel : ObservableObject
             _previous = _monitor.Snapshot();
             _previousAt = DateTime.UtcNow;
             MonitorStatus = "Medindo ao vivo, a cada segundo.";
+            EmptyText = "Ninguém usou a rede no último segundo. Os apps aparecem aqui assim que enviam ou recebem dados, do que mais usa para o que menos usa.";
         }
         catch (Exception ex)
         {
             _monitor?.Dispose();
             _monitor = null;
-            MonitorStatus = ex is UnauthorizedAccessException
+            // O motivo vai no meio da tabela vazia; repetido embaixo dela seria só ruído.
+            MonitorStatus = "";
+            EmptyText = ex is UnauthorizedAccessException
                 ? "Para ver quem usa a rede, abra o Folga como administrador."
                 : $"Monitor de rede indisponível: {ex.Message}";
             Log.Warn($"Monitor de rede: {ex.Message}");

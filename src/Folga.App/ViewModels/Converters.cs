@@ -49,6 +49,17 @@ public sealed class HexToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
+/// <summary>HasItems da tabela → a mensagem de "vazio" aparece só sem linhas.</summary>
+public sealed class NoItemsToVisibilityConverter : IValueConverter
+{
+    public static NoItemsToVisibilityConverter Instance { get; } = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class NotNullToVisibilityConverter : IValueConverter
 {
     public static NotNullToVisibilityConverter Instance { get; } = new();

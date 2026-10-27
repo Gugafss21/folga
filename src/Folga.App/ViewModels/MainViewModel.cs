@@ -31,6 +31,22 @@ public sealed partial class MainViewModel : ObservableObject
             new("Sistema", Sistema, "Ajustes do próprio Windows: arquivo de paginação, memória compactada, Modo de Jogo, otimizações de janela, capturas do Game Bar, agendamento de GPU e plano de energia durante o jogo. Avisa quando precisa reiniciar."),
         ];
         _selectedPage = Pages[0];
+        services.Engine.StateChanged += () => Application.Current?.Dispatcher.BeginInvoke(RefreshBoost);
+        RefreshBoost();
+    }
+
+    /// <summary>Estado do boost no rodapé do menu, visível em qualquer tela.</summary>
+    [ObservableProperty] private string _boostStatus = "";
+
+    /// <summary>"Active", "Waiting" ou "Off": escolhe a cor do ponto ao lado do estado.</summary>
+    [ObservableProperty] private string _boostKind = "Off";
+
+    private void RefreshBoost()
+    {
+        var state = _services.Engine.GetState();
+        (BoostKind, BoostStatus) = !state.Enabled ? ("Off", "Boost desligado")
+            : state.SessionActive ? ("Active", state.Games[0].ProfileName)
+            : ("Waiting", "Esperando um jogo");
     }
 
     public AgoraViewModel Agora { get; }

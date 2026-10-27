@@ -25,6 +25,26 @@
                 <TextBlock Text="Folga" Style="{StaticResource Text.Title}" />
             </StackPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,16">
+                <StackPanel Orientation="Horizontal" Margin="8,0,0,12"
+                            ToolTip="Estado do boost agora. Verde com o nome do jogo: sessão ativa, o jogo tem prioridade e os apps de fundo estão segurados. Cinza: esperando um jogo da lista (ou detectado em tela cheia), ou boost desligado no botão da tela Agora.">
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,8,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{StaticResource TextTertiaryBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BoostKind}" Value="Active">
+                                        <Setter Property="Fill" Value="{StaticResource OkBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding BoostKind}" Value="Off">
+                                        <Setter Property="Fill" Value="{StaticResource LineBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding BoostStatus}" Style="{StaticResource Text.Label}" Foreground="{StaticResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="160" />
+                </StackPanel>
                 <Button Content="Restaurar tudo" Style="{StaticResource Button.Link}" HorizontalAlignment="Left"
                         Command="{Binding RestoreAllCommand}"
                         ToolTip="Botão de emergência: desfaz tudo o que o Folga mudou (prioridades, núcleos, memória e a prioridade gravada no registro para jogos com anti-cheat) e desliga o boost. Pede confirmação antes." />
