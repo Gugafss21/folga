@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:v="clr-namespace:Folga.App.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:AgoraViewModel}">
     <UserControl.Resources>
@@ -18,7 +19,8 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel>
+        <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+        <StackPanel Margin="0,0,16,0">
             <!-- Jogo + botão principal -->
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -59,8 +61,73 @@
                 </ToggleButton>
             </Grid>
 
-            <!-- Números -->
+            <!-- Jogo: FPS, GPU e ping -->
             <Border Style="{StaticResource Panel}" Margin="0,24,0,0">
+                <StackPanel>
+                    <WrapPanel>
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="Quadros por segundo no último segundo, medidos pelos eventos de apresentação do DirectX (DX10, 11 e 12), por fora do jogo. Nada é injetado.">
+                            <TextBlock Text="FPS" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding FpsText}" Style="{StaticResource Text.Number}" Foreground="{StaticResource AccentBrush}" />
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="1% low dos últimos 30 s: o FPS dos 1% piores quadros (percentil 99 do frametime). Mostra as travadinhas que o FPS médio esconde; é aqui que o Folga deve fazer diferença.">
+                            <TextBlock Text="1% low" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding LowText}" Style="{StaticResource Text.Number}" />
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="Tempo médio de cada quadro no último segundo, em milissegundos. 16,7 ms = 60 FPS; quanto mais estável, mais suave.">
+                            <TextBlock Text="Frametime (ms)" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding FrameTimeText}" Style="{StaticResource Text.Number}" />
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}" ToolTip="{Binding GpuName, StringFormat='Uso da placa de vídeo ({0}). Perto de 99% durante o jogo é normal: a placa é o limite, não a CPU.'}">
+                            <TextBlock Text="GPU" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding GpuText}" Style="{StaticResource Text.Number}" />
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="Memória de vídeo em uso. Se encostar no total, o jogo começa a usar a RAM do PC e trava; baixe a qualidade das texturas.">
+                            <TextBlock Text="VRAM (GB)" Style="{StaticResource Text.Label}" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding VramText}" Style="{StaticResource Text.Number}" />
+                                <TextBlock Text="{Binding VramTotalText}" Style="{StaticResource Text.Label}" VerticalAlignment="Bottom" Margin="6,0,0,6" />
+                            </StackPanel>
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="Temperatura da GPU (só NVIDIA, pela NVML do driver). Até uns 80° é normal em jogo.">
+                            <TextBlock Text="GPU °C" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding GpuTempText}" Style="{StaticResource Text.Number}" />
+                        </StackPanel>
+                        <Rectangle Style="{StaticResource MetricDivider}" />
+                        <StackPanel Style="{StaticResource MetricCell}"
+                                    ToolTip="Ping até o servidor da partida, em ms. O Folga descobre o servidor pelo tráfego do jogo e mede por ICMP a cada 2 s; alguns servidores não respondem a ping, e aí aparece —.">
+                            <TextBlock Text="Ping (ms)" Style="{StaticResource Text.Label}" />
+                            <TextBlock Text="{Binding PingText}" Style="{StaticResource Text.Number}" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <Rectangle Height="1" Fill="{StaticResource LineBrush}" />
+                    <Grid Margin="16,12,16,12"
+                          ToolTip="Frametime de cada quadro nos últimos 60 s (cada ponto é o pior quadro daquele trecho). Linha reta e baixa = jogo suave; picos = travadas.">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="110" />
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,6">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding TelemetryNote}" Style="{StaticResource Text.Label}" TextTrimming="CharacterEllipsis" Margin="16,0,0,0" />
+                            <TextBlock Text="Frametime, últimos 60 s" Style="{StaticResource Text.Label}" />
+                        </DockPanel>
+                        <v:FrameTimeChart Grid.Row="1" Samples="{Binding FrameTimes}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Sistema -->
+            <Border Style="{StaticResource Panel}" Margin="0,12,0,0">
                 <WrapPanel>
                     <StackPanel Style="{StaticResource MetricCell}" ToolTip="Uso total do processador agora, igual ao Gerenciador de Tarefas.">
                         <TextBlock Text="CPU" Style="{StaticResource Text.Label}" />

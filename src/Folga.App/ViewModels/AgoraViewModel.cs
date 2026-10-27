@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Folga.App.Services;
 using Folga.Core.Engine;
 using Folga.Core.Logging;
+using Folga.Core.Telemetry;
 
 namespace Folga.App.ViewModels;
 
@@ -84,6 +85,19 @@ public sealed partial class AgoraViewModel : ObservableObject
     [ObservableProperty] private string _cleanupText = "—";
     [ObservableProperty] private string _coreLegend = "";
 
+    // Telemetria do jogo (Fase 4)
+    [ObservableProperty] private string _fpsText = "—";
+    [ObservableProperty] private string _lowText = "—";
+    [ObservableProperty] private string _frameTimeText = "—";
+    [ObservableProperty] private string _gpuText = "—";
+    [ObservableProperty] private string _vramText = "—";
+    [ObservableProperty] private string _vramTotalText = "";
+    [ObservableProperty] private string _gpuTempText = "—";
+    [ObservableProperty] private string _pingText = "—";
+    [ObservableProperty] private string _gpuName = "GPU";
+    [ObservableProperty] private string _telemetryNote = "";
+    [ObservableProperty] private IReadOnlyList<FrameSample> _frameTimes = [];
+
     private bool _syncingBoost;
 
     partial void OnBoostEnabledChanged(bool value)
@@ -140,7 +154,7 @@ public sealed partial class AgoraViewModel : ObservableObject
         if (Interlocked.Exchange(ref _sampling, 1) == 1) return;
         try
         {
-            var (cpu, memory) = await Task.Run(() => (_services.CpuUsage.Sample(), _services.Memory.Read()));
+            var (cpu, memory, telemetry) = await Task.Run(() => (_services.CpuUsage.Sample(), _services.Memory.Read(), _services.Telemetry.Snapshot()));
 
             if (cpu is { } c)
             {
@@ -157,6 +171,7 @@ public sealed partial class AgoraViewModel : ObservableObject
             RamTotalText = $"de {Gb(memory.TotalBytes)} GB";
             FreeText = Gb(memory.FreeBytes);
             StandbyText = Gb(memory.StandbyBytes);
+            ApplyTelemetry(telemetry);
         }
         catch (Exception ex)
         {
@@ -166,6 +181,24 @@ public sealed partial class AgoraViewModel : ObservableObject
         {
             Volatile.Write(ref _sampling, 0);
         }
+    }
+
+    private void ApplyTelemetry(TelemetrySnapshot t)
+    {
+        FpsText = t.Fps is { } fps ? fps.ToString("0", CultureInfo.CurrentCulture) : "—";
+        LowText = t.OnePercentLow is { } low ? low.ToString("0", CultureInfo.CurrentCulture) : "—";
+        FrameTimeText = t.FrameTimeMs is { } ms ? ms.ToString("0.0", CultureInfo.CurrentCulture) : "—";
+        FrameTimes = t.FrameTimes;
+
+        GpuName = t.Gpu?.Name ?? "GPU";
+        GpuText = t.Gpu?.UsagePercent is { } usage ? $"{usage:0}%" : "—";
+        VramText = t.Gpu?.VramUsedBytes is { } used ? Gb(used) : "—";
+        VramTotalText = t.Gpu?.VramTotalBytes is { } total ? $"de {Gb(total)} GB" : "";
+        GpuTempText = t.Gpu?.TemperatureC is { } c ? $"{c}°" : "—";
+
+        PingText = t.Ping?.RttMs is { } rtt ? rtt.ToString(CultureInfo.CurrentCulture) : "—";
+        var notes = new[] { t.FpsNote, t.Ping is { RttMs: null } p ? "Ping: " + p.Status : null }.Where(n => n is not null);
+        TelemetryNote = IsSessionActive ? string.Join(" · ", notes) : "Os números do jogo aparecem quando um jogo da lista estiver aberto.";
     }
 
     private static string Gb(long bytes) => (bytes / 1024d / 1024 / 1024).ToString("0.0", CultureInfo.CurrentCulture);

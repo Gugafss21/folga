@@ -7,6 +7,7 @@ using Folga.Core.Memory;
 using Folga.Core.Network;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
+using Folga.Core.Telemetry;
 
 namespace Folga.App.Services;
 
@@ -19,6 +20,7 @@ public sealed class AppServices : IDisposable
     public required ISystemMemory Memory { get; init; }
     public required CpuUsageSampler CpuUsage { get; init; }
     public required RamInfo? Ram { get; init; }
+    public required TelemetryService Telemetry { get; init; }
 
     public static AppServices Create(string? configPath = null)
     {
@@ -29,6 +31,9 @@ public sealed class AppServices : IDisposable
         var journal = new ChangeJournal(ChangeJournal.DefaultPath);
         var engine = new BoostEngine(store.Load(), topology, control, new RegistryIfeoStore(), memory,
             journal, ProcessWatcherFactory.Create(control), new WindowsNetworkControl(journal));
+        var telemetry = new TelemetryService(new GpuMonitor());
+        // FPS e ping acompanham a sessão: ligam quando o jogo abre e desligam quando fecha.
+        engine.StateChanged += () => telemetry.TrackGame(engine.GetState().Games.Select(g => g.Process.Pid).ToHashSet());
         return new AppServices
         {
             Store = store,
@@ -37,6 +42,7 @@ public sealed class AppServices : IDisposable
             Memory = memory,
             CpuUsage = new CpuUsageSampler(topology),
             Ram = SystemInfo.ReadRam(),
+            Telemetry = telemetry,
         };
     }
 
@@ -46,6 +52,7 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         Engine.Dispose();
+        Telemetry.Dispose();
         CpuUsage.Dispose();
     }
 }

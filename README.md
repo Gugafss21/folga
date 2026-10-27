@@ -1,6 +1,6 @@
 # Folga
 
-Gerenciador de desempenho para jogos no Windows. Quando um jogo do seu perfil abre, o Folga dá prioridade a ele e segura o resto (navegador, Discord, launchers): prioridade, núcleos (CPU Sets), EcoQoS, prioridade de I/O e de memória, orçamento de RAM e limpeza da standby list. Na rede, limita o upload dos apps de fundo (QoS do Windows), pausa o Windows Update e pode marcar o tráfego do jogo com DSCP 46. Quando o jogo fecha, tudo é desfeito.
+Gerenciador de desempenho para jogos no Windows. Quando um jogo do seu perfil abre, o Folga dá prioridade a ele e segura o resto (navegador, Discord, launchers): prioridade, núcleos (CPU Sets), EcoQoS, prioridade de I/O e de memória, orçamento de RAM e limpeza da standby list. Na rede, limita o upload dos apps de fundo (QoS do Windows), pausa o Windows Update e pode marcar o tráfego do jogo com DSCP 46. Mostra FPS, 1% low e frametime (eventos de Present do DirectX via ETW, sem injeção), uso, VRAM e temperatura da GPU (NVML na NVIDIA) e o ping até o servidor da partida. Quando o jogo fecha, tudo é desfeito.
 
 **Nada é injetado no jogo.** Tudo passa por APIs do Windows, por fora do processo. Se o anti-cheat negar acesso, a prioridade vai para o IFEO do registro e vale a partir da próxima abertura.
 
@@ -30,6 +30,6 @@ dotnet publish src/Folga.App -c Release -r win-x64 --self-contained -p:PublishSi
 
 ## Estrutura
 
-- `src/Folga.Core`: motor sem interface (detecção por ETW, perfis, aplicadores, diário, memória).
+- `src/Folga.Core`: motor sem interface (detecção por ETW, perfis, aplicadores, diário, memória, rede, telemetria).
 - `src/Folga.App`: WPF (telas Agora, Jogos, Segundo plano, Rede; ícone na bandeja).
 - `tests/Folga.Core.Tests`: testes do motor com processos falsos e contra um processo filho real.

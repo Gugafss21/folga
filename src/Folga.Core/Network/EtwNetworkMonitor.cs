@@ -1,3 +1,4 @@
+using System.Net;
 using Folga.Core.Logging;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
@@ -16,7 +17,7 @@ public sealed class EtwNetworkMonitor : IDisposable
 {
     private static readonly Guid KernelNetwork = new("7dd42a49-5329-4832-8dfd-43d979153a88");
     private const ulong KeywordIpv4 = 0x10, KeywordIpv6 = 0x20;
-    private const string SessionName = "Folga-NetworkWatch";
+    public const string DefaultSessionName = "Folga-NetworkWatch";
 
     // IDs do manifesto: TCP v4/v6 = 10/26 enviado, 11/27 recebido; UDP v4/v6 = 42/58 enviado, 43/59 recebido.
     private static readonly HashSet<int> SentIds = [10, 26, 42, 58];
@@ -24,14 +25,25 @@ public sealed class EtwNetworkMonitor : IDisposable
 
     private readonly object _gate = new();
     private readonly Dictionary<int, (long Sent, long Received)> _counters = [];
+    private readonly Dictionary<IPAddress, long> _remoteBytes = [];
+    private readonly string _sessionName;
+    private readonly Func<int, bool>? _remoteFilter;
     private TraceEventSession? _session;
     private Thread? _thread;
+
+    /// <param name="sessionName">Nome da sessão ETW; dois monitores ao mesmo tempo precisam de nomes diferentes.</param>
+    /// <param name="remoteFilter">Para quais PIDs anotar o destino dos envios (ex.: o jogo, para achar o servidor).</param>
+    public EtwNetworkMonitor(string sessionName = DefaultSessionName, Func<int, bool>? remoteFilter = null)
+    {
+        _sessionName = sessionName;
+        _remoteFilter = remoteFilter;
+    }
 
     /// <summary>Precisa de admin. Lança exceção se a sessão ETW não puder ser criada.</summary>
     public void Start()
     {
         if (TraceEventSession.IsElevated() != true) throw new UnauthorizedAccessException("precisa de administrador");
-        _session = new TraceEventSession(SessionName, TraceEventSessionOptions.Create) { StopOnDispose = true };
+        _session = new TraceEventSession(_sessionName, TraceEventSessionOptions.Create) { StopOnDispose = true };
         _session.EnableProvider(KernelNetwork, TraceEventLevel.Informational, KeywordIpv4 | KeywordIpv6);
         var parser = new RegisteredTraceEventParser(_session.Source);
         parser.All += OnEvent;
@@ -46,6 +58,12 @@ public sealed class EtwNetworkMonitor : IDisposable
     public IReadOnlyDictionary<int, NetworkCounters> Snapshot()
     {
         lock (_gate) return _counters.ToDictionary(kv => kv.Key, kv => new NetworkCounters(kv.Value.Sent, kv.Value.Received));
+    }
+
+    /// <summary>Bytes enviados por endereço de destino, só dos PIDs do <c>remoteFilter</c>.</summary>
+    public IReadOnlyDictionary<IPAddress, long> RemoteBytes()
+    {
+        lock (_gate) return new Dictionary<IPAddress, long>(_remoteBytes);
     }
 
     private void OnEvent(TraceEvent e)
@@ -65,12 +83,29 @@ public sealed class EtwNetworkMonitor : IDisposable
         {
             return;
         }
+        var remote = sent && _remoteFilter?.Invoke(pid) == true ? ParseAddress(e.PayloadValue(2)) : null;
         lock (_gate)
         {
             _counters.TryGetValue(pid, out var c);
             _counters[pid] = sent ? (c.Sent + size, c.Received) : (c.Sent, c.Received + size);
+            if (remote is not null) _remoteBytes[remote] = _remoteBytes.GetValueOrDefault(remote) + size;
         }
     }
+
+    /// <summary>
+    /// O endereço chega como o TraceEvent o decodifica: IPAddress/texto (quando o manifesto diz IPv4/IPv6),
+    /// número de 32 bits na ordem de rede (IPv4 cru) ou 16 bytes (IPv6 cru).
+    /// </summary>
+    internal static IPAddress? ParseAddress(object? value) => value switch
+    {
+        IPAddress a => a,
+        string s when IPAddress.TryParse(s, out var a) => a,
+        byte[] { Length: 4 or 16 } b => new IPAddress(b),
+        int i => new IPAddress((long)(uint)i),
+        uint u => new IPAddress(u),
+        long l when l is >= 0 and <= uint.MaxValue => new IPAddress(l),
+        _ => null,
+    };
 
     public void Dispose()
     {
