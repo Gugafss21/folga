@@ -31,6 +31,11 @@ public partial class App : Application
         }
 
         Log.Init(Log.DefaultDirectory);
+
+        // Dicas: aparecem rápido e ficam na tela enquanto o mouse estiver em cima (o padrão some em 5 s).
+        ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(400));
+        ToolTipService.ShowDurationProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(int.MaxValue));
+
         DispatcherUnhandledException += (_, args) =>
         {
             Log.Error($"Erro não tratado na interface: {args.Exception}");
@@ -68,17 +73,21 @@ public partial class App : Application
 
     private void CreateTray(MainViewModel viewModel)
     {
-        _boostItem = new MenuItem { Header = "Boost ligado", IsCheckable = true };
+        _boostItem = new MenuItem
+        {
+            Header = "Boost ligado", IsCheckable = true,
+            ToolTip = "Marcado: quando um jogo da lista abre, ele ganha prioridade e os apps de fundo são segurados. Desmarcar desfaz na hora.",
+        };
         _boostItem.Click += (_, _) =>
         {
             _services!.Engine.SetEnabled(_boostItem.IsChecked);
             _services.SaveEngineConfig();
         };
-        var open = new MenuItem { Header = "Abrir o Folga" };
+        var open = new MenuItem { Header = "Abrir o Folga", ToolTip = "Mostra a janela principal. Dois cliques no ícone fazem o mesmo." };
         open.Click += (_, _) => ShowWindow();
-        var restore = new MenuItem { Header = "Restaurar tudo" };
+        var restore = new MenuItem { Header = "Restaurar tudo", ToolTip = "Desfaz tudo o que o Folga mudou, inclusive o registro (IFEO), e desliga o boost. Pede confirmação." };
         restore.Click += (_, _) => viewModel.RestoreAllCommand.Execute(null);
-        var exit = new MenuItem { Header = "Sair" };
+        var exit = new MenuItem { Header = "Sair", ToolTip = "Fecha o Folga. O que estiver aplicado é desfeito antes de sair. Fechar a janela no X só esconde na bandeja." };
         exit.Click += (_, _) =>
         {
             if (_window is not null) _window.AllowClose = true;

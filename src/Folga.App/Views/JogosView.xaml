@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:v="clr-namespace:Folga.App.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:JogosViewModel}">
     <DockPanel>
@@ -18,35 +19,48 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Adicionar um jogo aberto" Style="{StaticResource Text.Section}" Margin="0,0,0,8" />
                 <Button DockPanel.Dock="Right" Content="Adicionar" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
-                        Command="{Binding AddRunningCommand}" />
+                        Command="{Binding AddRunningCommand}"
+                        ToolTip="Cria um perfil com o .exe do app escolhido na lista. Depois confira o nome e clique em Salvar." />
                 <Button DockPanel.Dock="Right" Content="Atualizar lista" Style="{StaticResource Button.Plain}" Margin="8,0,0,0"
-                        Command="{Binding RefreshRunningCommand}" />
+                        Command="{Binding RefreshRunningCommand}"
+                        ToolTip="Busca os apps que estão com janela aberta agora. Abra o jogo antes de clicar." />
                 <ComboBox ItemsSource="{Binding Running}" SelectedItem="{Binding SelectedRunning}" DisplayMemberPath="Label"
-                          ToolTip="Abra o jogo, clique em Atualizar lista e escolha a janela dele" />
+                          ToolTip="Apps com janela aberta: título da janela · nome do .exe. É o jeito mais fácil de descobrir o .exe de um jogo." />
             </DockPanel>
         </Border>
 
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Left" Content="Novo" Style="{StaticResource Button.Plain}" Command="{Binding AddCommand}" />
-            <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0" />
-            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}" />
+            <Button DockPanel.Dock="Left" Content="Novo" Style="{StaticResource Button.Plain}" Command="{Binding AddCommand}"
+                    ToolTip="Adiciona uma linha em branco para digitar o nome e o .exe do jogo à mão." />
+            <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0"
+                    ToolTip="Tira da lista o jogo selecionado. Só vale depois de Salvar." />
+            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+                    ToolTip="Grava a lista e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
         </DockPanel>
 
         <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
             <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64" />
-                <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*" />
+                <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64"
+                                        v:Hint.Text="Desmarcado: o perfil fica guardado, mas o Folga ignora o jogo." />
+                <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"
+                                    v:Hint.Text="Nome que aparece na tela Agora. Só para você identificar; não afeta a detecção." />
+                <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
+                                    v:Hint.Text="Nome do .exe do jogo; vários separados por vírgula. * vale qualquer trecho (PioneerGame*.exe pega PioneerGame-Win64-Shipping.exe). Não diferencia maiúsculas. Dê dois cliques para editar." />
                 <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"
                                         ItemsSource="{x:Static vm:Choices.GamePriorities}"
                                         SelectedValuePath="Value" DisplayMemberPath="Label"
-                                        SelectedValueBinding="{Binding Priority}" />
+                                        SelectedValueBinding="{Binding Priority}"
+                                        EditingElementStyle="{StaticResource ChoiceCombo}"
+                                        v:Hint.Text="Quanto o Windows favorece o jogo na divisão da CPU. Alta é o recomendado. Passe o mouse em cada opção para ver o que faz." />
                 <DataGridComboBoxColumn Header="Núcleos" Width="1.4*"
                                         ItemsSource="{x:Static vm:Choices.GameCoreModes}"
                                         SelectedValuePath="Value" DisplayMemberPath="Label"
-                                        SelectedValueBinding="{Binding Cores}" />
-                <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+                                        SelectedValueBinding="{Binding Cores}"
+                                        EditingElementStyle="{StaticResource ChoiceCombo}"
+                                        v:Hint.Text="Quais núcleos o jogo pode usar. Todos é o recomendado; os apps de fundo já são afastados para o último núcleo." />
+                <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
+                                        v:Hint.Text="Jogos com anti-cheat (EAC, BattlEye) às vezes bloqueiam a mudança de prioridade. Marcado: o Folga grava a prioridade no registro do Windows (IFEO) e ela vale a partir da próxima vez que o jogo abrir. Nada é injetado no jogo." />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

@@ -26,11 +26,18 @@
             </StackPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,16">
                 <Button Content="Restaurar tudo" Style="{StaticResource Button.Link}" HorizontalAlignment="Left"
-                        Command="{Binding RestoreAllCommand}" ToolTip="Desfaz todas as alterações, inclusive o IFEO, e desliga o boost" />
+                        Command="{Binding RestoreAllCommand}"
+                        ToolTip="Botão de emergência: desfaz tudo o que o Folga mudou (prioridades, núcleos, memória e a prioridade gravada no registro para jogos com anti-cheat) e desliga o boost. Pede confirmação antes." />
                 <TextBlock Text="{Binding Version}" Style="{StaticResource Text.Label}" Margin="8,4,0,0" />
             </StackPanel>
             <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
-                     ItemContainerStyle="{StaticResource NavItem}" Background="Transparent" BorderThickness="0">
+                     Background="Transparent" BorderThickness="0">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource NavItem}">
+                        <Setter Property="ToolTip" Value="{Binding Hint}" />
+                        <Setter Property="ToolTipService.Placement" Value="Right" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding Title}" />

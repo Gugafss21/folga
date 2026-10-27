@@ -6,7 +6,7 @@ using Folga.Core.Profiles;
 
 namespace Folga.App.ViewModels;
 
-public sealed record NavPage(string Title, ObservableObject ViewModel);
+public sealed record NavPage(string Title, ObservableObject ViewModel, string Hint);
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -18,7 +18,12 @@ public sealed partial class MainViewModel : ObservableObject
         Agora = new AgoraViewModel(services);
         Jogos = new JogosViewModel(services);
         SegundoPlano = new SegundoPlanoViewModel(services);
-        Pages = [new("Agora", Agora), new("Jogos", Jogos), new("Segundo plano", SegundoPlano)];
+        Pages =
+        [
+            new("Agora", Agora, "O jogo detectado, o botão Boost, CPU e RAM ao vivo e o mapa de núcleos."),
+            new("Jogos", Jogos, "Lista de jogos que o Folga reconhece e o que fazer quando cada um abre."),
+            new("Segundo plano", SegundoPlano, "Regras para navegador, Discord e launchers enquanto um jogo está aberto, e o estado real de cada um."),
+        ];
         _selectedPage = Pages[0];
     }
 

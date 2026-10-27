@@ -1,5 +1,35 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:v="clr-namespace:Folga.App.Views">
+
+    <!-- Dicas ao passar o mouse: painel plano, texto quebrado em até 320 px. -->
+    <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+        <Setter Property="Background" Value="{StaticResource PanelHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSmall}" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="320" LineHeight="17" />
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Lista suspensa cujas opções (Choice) explicam a si mesmas ao passar o mouse. -->
+    <Style x:Key="ChoiceCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                    <Setter Property="ToolTip" Value="{Binding Hint}" />
+                    <Setter Property="ToolTipService.Placement" Value="Right" />
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <!-- Tipografia: números são tipografia, não cartões. -->
     <Style x:Key="Text.Label" TargetType="TextBlock">
@@ -178,10 +208,18 @@
         <Setter Property="SelectionMode" Value="Single" />
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="RowHeight" Value="36" />
+        <Setter Property="ColumnHeaderStyle">
+            <Setter.Value>
+                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                    <Setter Property="ToolTip" Value="{Binding Column.(v:Hint.Text), RelativeSource={RelativeSource Self}}" />
+                </Style>
+            </Setter.Value>
+        </Setter>
         <Setter Property="CellStyle">
             <Setter.Value>
                 <!-- Conteúdo centrado na vertical em todas as colunas (texto, caixa de seleção e template). -->
                 <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                    <Setter Property="ToolTip" Value="{Binding Column.(v:Hint.Text), RelativeSource={RelativeSource Self}}" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="DataGridCell">

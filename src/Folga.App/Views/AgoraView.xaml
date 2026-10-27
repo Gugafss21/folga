@@ -40,7 +40,8 @@
                     <TextBlock Text="{Binding GameNote}" Style="{StaticResource Text.Body}" Margin="0,6,24,0" />
                 </StackPanel>
                 <ToggleButton Grid.Column="1" Style="{StaticResource BoostToggle}" VerticalAlignment="Top"
-                              IsChecked="{Binding BoostEnabled}">
+                              IsChecked="{Binding BoostEnabled}"
+                              ToolTip="Liga ou desliga o Folga. Ligado: quando um jogo da lista abre, ele ganha prioridade e os apps de fundo são segurados; ao fechar, tudo volta. Desligar no meio do jogo desfaz na hora.">
                     <ToggleButton.Content>
                         <TextBlock>
                             <TextBlock.Style>
@@ -61,12 +62,12 @@
             <!-- Números -->
             <Border Style="{StaticResource Panel}" Margin="0,24,0,0">
                 <WrapPanel>
-                    <StackPanel Style="{StaticResource MetricCell}">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Uso total do processador agora, igual ao Gerenciador de Tarefas.">
                         <TextBlock Text="CPU" Style="{StaticResource Text.Label}" />
                         <TextBlock Text="{Binding CpuText}" Style="{StaticResource Text.Number}" />
                     </StackPanel>
                     <Rectangle Style="{StaticResource MetricDivider}" />
-                    <StackPanel Style="{StaticResource MetricCell}">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Memória ocupada por programas agora. O cache (standby) não entra na conta.">
                         <TextBlock Text="RAM em uso (GB)" Style="{StaticResource Text.Label}" />
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding RamUsedText}" Style="{StaticResource Text.Number}" />
@@ -74,22 +75,22 @@
                         </StackPanel>
                     </StackPanel>
                     <Rectangle Style="{StaticResource MetricDivider}" />
-                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Listas free + zero: RAM realmente vaga">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="RAM realmente vaga, pronta para o jogo usar sem esperar. Se cair abaixo do limite da tela Segundo plano durante o jogo, o Folga limpa a standby list.">
                         <TextBlock Text="RAM livre (GB)" Style="{StaticResource Text.Label}" />
                         <TextBlock Text="{Binding FreeText}" Style="{StaticResource Text.Number}" />
                     </StackPanel>
                     <Rectangle Style="{StaticResource MetricDivider}" />
-                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Cache que o Windows pode reaproveitar">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Arquivos que o Windows guarda na RAM para abrir mais rápido. É liberado sob demanda, mas a liberação pode causar engasgos; por isso o Folga limpa antes quando a RAM livre fica baixa.">
                         <TextBlock Text="Standby (GB)" Style="{StaticResource Text.Label}" />
                         <TextBlock Text="{Binding StandbyText}" Style="{StaticResource Text.Number}" />
                     </StackPanel>
                     <Rectangle Style="{StaticResource MetricDivider}" />
-                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Processos de fundo com prioridade, núcleos e memória reduzidos">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Quantos processos de fundo (abas do navegador, Discord, launchers) estão com prioridade, núcleos e memória reduzidos agora. Só conta com um jogo aberto.">
                         <TextBlock Text="Apps segurados" Style="{StaticResource Text.Label}" />
                         <TextBlock Text="{Binding HeldText}" Style="{StaticResource Text.Number}" />
                     </StackPanel>
                     <Rectangle Style="{StaticResource MetricDivider}" />
-                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Processos esvaziados pelo orçamento de RAM · limpezas da standby list">
+                    <StackPanel Style="{StaticResource MetricCell}" ToolTip="Primeiro número: processos esvaziados por passarem do orçamento de RAM (a memória vai para o disco, o app não fecha). Segundo: limpezas da standby list nesta sessão.">
                         <TextBlock Text="Esvaziados · limpezas" Style="{StaticResource Text.Label}" />
                         <TextBlock Text="{Binding CleanupText}" Style="{StaticResource Text.Number}" />
                     </StackPanel>
@@ -104,7 +105,8 @@
                     <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource TextTertiaryBrush}" />
                     <TextBlock Text="fundo" Style="{StaticResource Text.Label}" Margin="6,0,0,0" />
                 </StackPanel>
-                <TextBlock Text="Núcleos" Style="{StaticResource Text.Section}" />
+                <TextBlock Text="Núcleos" Style="{StaticResource Text.Section}"
+                           ToolTip="Mapa da sua CPU: cada quadro é um núcleo físico e cada barra é uma thread, com o uso em %. Âmbar é onde o jogo roda; cinza é onde os apps de fundo ficam durante o jogo." />
             </DockPanel>
             <TextBlock Text="{Binding CoreLegend}" Style="{StaticResource Text.Body}" Margin="0,0,0,12" />
 
@@ -116,7 +118,8 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:CoreTileViewModel}">
-                        <Border x:Name="Tile" Style="{StaticResource Panel}" Margin="0,0,8,8" Padding="12,10">
+                        <Border x:Name="Tile" Style="{StaticResource Panel}" Margin="0,0,8,8" Padding="12,10"
+                                ToolTip="Cada barra é uma thread deste núcleo e mostra o uso em %. Borda âmbar: núcleo em uso pelo jogo na sessão atual. Os núcleos marcados como fundo são definidos nas regras de Segundo plano.">
                             <StackPanel>
                                 <DockPanel>
                                     <TextBlock x:Name="RoleText" DockPanel.Dock="Right" Text="{Binding Role}" Style="{StaticResource Text.Label}" />
@@ -171,7 +174,8 @@
             <!-- Atividade -->
             <DockPanel Margin="0,28,0,10">
                 <TextBlock DockPanel.Dock="Right" Text="{Binding RamSpeed}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
-                <TextBlock Text="Atividade" Style="{StaticResource Text.Section}" />
+                <TextBlock Text="Atividade" Style="{StaticResource Text.Section}"
+                           ToolTip="Últimas ações do Folga: jogo detectado, apps segurados, o que foi desfeito e avisos. O histórico completo fica na pasta de logs do Folga (%LocalAppData%\Folga\logs)." />
             </DockPanel>
             <Border Style="{StaticResource Panel}" Padding="14,10">
                 <ItemsControl ItemsSource="{Binding Activity}">
