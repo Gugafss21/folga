@@ -8,6 +8,7 @@ using Folga.Core.Memory;
 using Folga.Core.Network;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
+using Folga.Core.SystemSettings;
 using Folga.Core.Telemetry;
 
 namespace Folga.App.Services;
@@ -24,6 +25,8 @@ public sealed class AppServices : IDisposable
     public required TelemetryService Telemetry { get; init; }
     public required AutoGameDetector Detector { get; init; }
     public required OverlayService Overlay { get; init; }
+    public required IPowerPlan Power { get; init; }
+    public required RestartTracker Restart { get; init; }
 
     public static AppServices Create(string? configPath = null)
     {
@@ -32,8 +35,9 @@ public sealed class AppServices : IDisposable
         var memory = new WindowsSystemMemory();
         var topology = CpuTopology.FromSystem();
         var journal = new ChangeJournal(ChangeJournal.DefaultPath);
+        var power = new WindowsPowerPlan();
         var engine = new BoostEngine(store.Load(), topology, control, new RegistryIfeoStore(), memory,
-            journal, ProcessWatcherFactory.Create(control), new WindowsNetworkControl(journal));
+            journal, ProcessWatcherFactory.Create(control), new WindowsNetworkControl(journal), power: power);
         var telemetry = new TelemetryService(new GpuMonitor());
         // FPS e ping acompanham a sessão: ligam quando o jogo abre e desligam quando fecha.
         engine.StateChanged += () => telemetry.TrackGame(engine.GetState().Games.Select(g => g.Process.Pid).ToHashSet());
@@ -59,6 +63,8 @@ public sealed class AppServices : IDisposable
             Telemetry = telemetry,
             Detector = detector,
             Overlay = new OverlayService(engine, telemetry, memory),
+            Power = power,
+            Restart = new RestartTracker(RestartTracker.DefaultPath),
         };
     }
 

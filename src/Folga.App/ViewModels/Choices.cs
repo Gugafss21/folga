@@ -1,5 +1,6 @@
 using Folga.Core.Overlay;
 using Folga.Core.Profiles;
+using Folga.Core.SystemSettings;
 
 namespace Folga.App.ViewModels;
 
@@ -55,6 +56,16 @@ public static class Choices
         new(OverlayCorner.TopRight, "Superior direito", "Canto de cima à direita."),
         new(OverlayCorner.BottomLeft, "Inferior esquerdo", "Canto de baixo à esquerda."),
         new(OverlayCorner.BottomRight, "Inferior direito", "Canto de baixo à direita."),
+    ];
+
+    public static IReadOnlyList<Choice<PagefileMode>> PagefileModes { get; } =
+    [
+        new(PagefileMode.SystemManaged, "Gerenciada pelo Windows",
+            "O Windows aumenta e diminui o arquivo de paginação conforme precisa. É o recomendado para quase todo mundo: nunca falta memória e não ocupa espaço à toa."),
+        new(PagefileMode.Custom, "Tamanho fixo",
+            "Você escolhe o mínimo e o máximo em MB. Evita o arquivo crescer no meio do jogo, mas se o máximo for pequeno, jogos e apps podem fechar por falta de memória."),
+        new(PagefileMode.None, "Desligada",
+            "Sem arquivo de paginação. Não deixa o jogo mais rápido: o limite de memória passa a ser só a RAM, e quando ela enche o jogo fecha. Não recomendado com 16 GB."),
     ];
 
     public static PriorityChoice From(PriorityLevel? level) =>

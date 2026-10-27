@@ -6,6 +6,7 @@ using Folga.Core.Memory;
 using Folga.Core.Network;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
+using Folga.Core.SystemSettings;
 
 namespace Folga.Core.Engine;
 
@@ -39,6 +40,7 @@ public sealed class BoostEngine : IDisposable
     private readonly ChangeJournal _journal;
     private readonly IProcessWatcher _watcher;
     private readonly INetworkControl _network;
+    private readonly IPowerPlan? _power;
     private readonly TimeProvider _time;
     private readonly Dictionary<int, (GameProfile Profile, ProcessRef Process, string Note)> _games = [];
     private readonly Dictionary<int, (BackgroundRule Rule, ProcessRef Process)> _background = [];
@@ -55,8 +57,10 @@ public sealed class BoostEngine : IDisposable
     public event Action? StateChanged;
 
     public BoostEngine(FolgaConfig config, CpuTopology topology, IProcessControl control, IIfeoStore ifeo,
-        ISystemMemory memory, ChangeJournal journal, IProcessWatcher watcher, INetworkControl network, TimeProvider? time = null)
+        ISystemMemory memory, ChangeJournal journal, IProcessWatcher watcher, INetworkControl network, TimeProvider? time = null,
+        IPowerPlan? power = null)
     {
+        _power = power;
         _config = config;
         Topology = topology;
         _control = control;
@@ -126,6 +130,12 @@ public sealed class BoostEngine : IDisposable
     public void UpdateOverlay(Overlay.OverlaySettings overlay)
     {
         lock (_gate) _config.Overlay = overlay;
+    }
+
+    /// <summary>Troca o plano de energia do jogo. Com um jogo aberto, vale a partir do próximo jogo.</summary>
+    public void UpdatePower(PowerSettings power)
+    {
+        lock (_gate) _config.Power = power;
     }
 
     /// <summary>Acrescenta um perfil (o jogo detectado automaticamente) e já aplica no processo aberto, sem desfazer nada.</summary>
@@ -261,7 +271,41 @@ public sealed class BoostEngine : IDisposable
         _tick?.Dispose();
         _tick = _time.CreateTimer(_ => Tick(), null, interval, interval);
         _network.Begin(NetworkPlanner.Build(_config, _games.Values.Select(g => (g.Profile, g.Process.ExeName))));
+        SwitchPowerScheme();
         Log.Info($"Sessão iniciada: {_background.Count} processos de fundo segurados");
+    }
+
+    /// <summary>Troca para o plano escolhido para o jogo, guardando o de antes no diário.</summary>
+    private void SwitchPowerScheme()
+    {
+        if (_power is null || _config.Power.SchemeDuringGame is not { } target) return;
+        if (_power.Active() is not { } current || current == target) return;
+        if (_power.List().FirstOrDefault(s => s.Id == target) is not { } scheme)
+        {
+            Log.Warn($"Plano de energia {target} não existe mais; mantendo o atual");
+            return;
+        }
+        var entry = new JournalEntry { Kind = ChangeKind.PowerScheme, ExeName = current.ToString() };
+        _journal.Add(entry);
+        if (_power.SetActive(target)) Log.Info($"Plano de energia: {scheme.Name} durante o jogo");
+        else
+        {
+            _journal.RemoveWhere(e => e.Id == entry.Id);
+            Log.Warn($"Não deu para trocar o plano de energia para {scheme.Name}");
+        }
+    }
+
+    private void RestorePowerScheme()
+    {
+        var entries = _journal.Entries.Where(e => e.Kind == ChangeKind.PowerScheme).ToList();
+        if (entries.Count == 0) return;
+        // A primeira troca guarda o plano de antes do jogo.
+        if (_power is not null && Guid.TryParse(entries[0].ExeName, out var original))
+        {
+            if (_power.SetActive(original)) Log.Info("Plano de energia de antes do jogo restaurado");
+            else Log.Warn($"Não deu para voltar ao plano de energia {original}");
+        }
+        _journal.RemoveWhere(e => e.Kind == ChangeKind.PowerScheme);
     }
 
     private void EndSession()
@@ -272,6 +316,7 @@ public sealed class BoostEngine : IDisposable
         _background.Clear();
         _lastTrim.Clear();
         _network.End();
+        RestorePowerScheme();
 
         var reverted = 0;
         var entries = _journal.Entries.Where(e => ChangeKinds.IsProcess(e.Kind)).ToList();

@@ -58,8 +58,9 @@ public static class DefaultConfig
                 else if (rule.Executables.Any(e => e.Equals("OneDrive.exe", StringComparison.OrdinalIgnoreCase))) rule.UploadLimitKbps = SyncUploadKbps;
             }
         }
-        // v3: detecção automática. v4: overlay pelo RTSS.
-        // As seções ausentes no arquivo já vêm com o padrão (detecção ligada com as exclusões; overlay com os itens padrão).
+        // v3: detecção automática. v4: overlay pelo RTSS. v5: plano de energia durante o jogo.
+        // As seções ausentes no arquivo já vêm com o padrão (detecção ligada com as exclusões; overlay com os
+        // itens padrão; plano de energia sem troca).
         config.Version = FolgaConfig.CurrentVersion;
         return true;
     }

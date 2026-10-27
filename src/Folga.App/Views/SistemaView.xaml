@@ -1,0 +1,156 @@
+<UserControl x:Class="Folga.App.Views.SistemaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:SistemaViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+        <Style x:Key="Note" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="28,2,0,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="Aplicar" Style="{StaticResource Button.Plain}" Command="{Binding ApplyCommand}"
+                    ToolTip="Grava no Windows só o que você mudou nesta tela. Modo de Jogo, otimizações de janela e Game Bar valem na hora (ou ao abrir o jogo de novo); paginação, memória compactada e agendamento de GPU valem depois de reiniciar o PC, e o Folga avisa no topo da tela. O plano de energia vale no próximo jogo." />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <StackPanel Margin="0,0,16,0">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="Sistema" Style="{StaticResource Text.Headline}" />
+                    <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Text="Ajustes do próprio Windows que mexem no jogo. Ao contrário do boost, eles ficam valendo depois que o jogo fecha; para voltar, é só mudar aqui de novo. Passe o mouse em cada opção para ver o que ela faz e quando ajuda." />
+                </StackPanel>
+
+                <!-- Sem admin -->
+                <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,0,0,12"
+                        Visibility="{Binding NeedsAdmin, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Text.Body}" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"
+                               Text="O Folga não está como administrador: paginação, memória compactada e agendamento de GPU não podem ser alterados. Feche e abra o Folga com &quot;Executar como administrador&quot;." />
+                </Border>
+
+                <!-- Reiniciar -->
+                <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,0,0,12" BorderBrush="{StaticResource AccentBrush}"
+                        Visibility="{Binding RestartPending, Converter={StaticResource BoolToVisibility}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Reiniciar agora" Style="{StaticResource Button.Plain}" Command="{Binding RestartCommand}"
+                                ToolTip="Abre o aviso padrão do Windows para reiniciar o computador. Se você confirmar, o Windows reinicia na hora: salve o que estiver aberto antes. O Folga desfaz o boost sozinho ao desligar. Se escolher Não, as mudanças ficam esperando o próximo reinício." />
+                        <TextBlock Text="{Binding RestartText}" Style="{StaticResource Text.Body}" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   ToolTip="Estas mudanças já estão gravadas no Windows, mas ele só as usa ao ligar. Se você desfizer uma delas antes de reiniciar, ela sai desta lista." />
+                    </DockPanel>
+                </Border>
+
+                <TextBlock Text="Memória" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="Como o Windows lida com a memória quando a RAM aperta: o arquivo de paginação no disco e a compactação na própria RAM. Com 16 GB e navegador aberto durante o jogo, os dois entram em ação." />
+
+                <!-- Paginação -->
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Arquivo de paginação (memória virtual)" Style="{StaticResource Text.Body}" FontWeight="SemiBold"
+                                   ToolTip="O pagefile.sys é a extensão da RAM no disco. O Windows guarda ali o que está parado na memória (abas antigas, apps minimizados) para deixar a RAM para o jogo. Também define o limite de memória do PC: RAM + paginação. Se esse limite estoura, o jogo fecha com erro de memória, mesmo com RAM livre aparecendo." />
+                        <TextBlock Text="{Binding PagefileNow}" Style="{StaticResource Text.Label}" Margin="0,4,0,10" TextWrapping="Wrap"
+                                   ToolTip="Valores deste boot. Limite de memória é quanto os programas podem reservar ao todo; reservado é quanto já reservaram. Se o reservado chega perto do limite, falta memória." />
+
+                        <Grid IsEnabled="{Binding IsAdmin}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Modo" Style="{StaticResource FieldLabel}" />
+                            <ComboBox Grid.Column="1" Style="{StaticResource ChoiceCombo}" ItemsSource="{x:Static vm:Choices.PagefileModes}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PagefileMode}"
+                                      ToolTip="Gerenciada pelo Windows é o recomendado. Tamanho fixo só se você quer evitar que o arquivo cresça durante o jogo. Desligada não acelera nada e faz jogos fecharem quando a RAM enche. Passe o mouse em cada opção. Vale depois de reiniciar." />
+                            <TextBlock Grid.Column="2" Text="Unidade" Style="{StaticResource FieldLabel}" Margin="16,0,10,0" />
+                            <ComboBox Grid.Column="3" ItemsSource="{Binding Drives}" SelectedItem="{Binding PagefileDrive}"
+                                      ToolTip="Em qual disco fica o pagefile.sys. Escolha o SSD mais rápido (normalmente o C:). Num HD mecânico a paginação fica bem mais lenta e pode causar travadas." />
+
+                            <TextBlock Grid.Row="2" Text="Mínimo (MB)" Style="{StaticResource FieldLabel}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding InitialMbText, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left"
+                                     IsEnabled="{Binding IsCustomPagefile}"
+                                     ToolTip="Tamanho com que o arquivo é criado ao ligar o PC, em MB (1024 MB = 1 GB). Com mínimo = máximo o arquivo nunca muda de tamanho. Só vale no modo Tamanho fixo." />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Máximo (MB)" Style="{StaticResource FieldLabel}" Margin="16,0,10,0" />
+                            <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding MaximumMbText, UpdateSourceTrigger=PropertyChanged}"
+                                     IsEnabled="{Binding IsCustomPagefile}"
+                                     ToolTip="Até quanto o arquivo pode crescer, em MB. É o que define o limite de memória do PC: RAM + este valor. Muito pequeno = jogos fechando por falta de memória. Só vale no modo Tamanho fixo." />
+                        </Grid>
+
+                        <TextBlock Text="{Binding PagefileAdvice}" Style="{StaticResource Text.Label}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding PagefileWarning}" Style="{StaticResource Text.Body}" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding PagefileWarning, Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Memória compactada -->
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding MemoryCompression}" IsEnabled="{Binding CompressionKnown}" Content="Memória compactada"
+                                  ToolTip="Quando a RAM aperta, o Windows comprime na própria RAM o que está parado (processo &quot;Memory Compression&quot;) em vez de mandar para o disco. Gasta um pouco de CPU, mas é muito mais rápido que ler do disco, por isso evita travadas. Desligar só faz sentido com bastante RAM (32 GB ou mais). Vale depois de reiniciar." />
+                        <TextBlock Text="{Binding CompressionNow}" Style="{StaticResource Note}" />
+                        <TextBlock Text="{Binding CompressionAdvice}" Style="{StaticResource Note}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Jogos no Windows" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="Opções que o Windows já tem em Configurações &gt; Jogos e Configurações &gt; Tela &gt; Gráficos, juntas aqui." />
+
+                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding GameMode}" Content="Modo de Jogo do Windows"
+                                  ToolTip="Com um jogo aberto, o Windows adia atualizações e notificações e dá preferência de CPU e GPU ao jogo. Combina com o Folga e vem ligado por padrão; desligue só se um jogo específico ficar pior. Vale na hora (Configurações &gt; Jogos &gt; Modo de Jogo)." />
+                        <TextBlock Text="Ligado por padrão no Windows. Vale na hora." Style="{StaticResource Note}" />
+
+                        <CheckBox IsChecked="{Binding WindowedOptimizations}" Content="Otimizações para jogos em janela" Margin="0,12,0,0"
+                                  ToolTip="Faz jogos DirectX 10 e 11 em janela ou janela sem borda usarem o modo de apresentação moderno (flip model): menos atraso de entrada, e permite VRR/G-Sync e Auto HDR em janela. Ajuda bastante quem joga em janela sem borda. Vale ao abrir o jogo de novo (Configurações &gt; Tela &gt; Gráficos)." />
+                        <TextBlock Text="Ajuda jogos em janela sem borda. Vale ao abrir o jogo de novo." Style="{StaticResource Note}" />
+
+                        <CheckBox IsChecked="{Binding GameBarCapture}" Content="Capturas e gravação do Xbox Game Bar" Margin="0,12,0,0"
+                                  ToolTip="Marcado: o Game Bar pode gravar vídeo e tirar prints do jogo (Win+Alt+R), e a gravação em segundo plano pode ficar ligada, o que gasta GPU e disco o tempo todo. Desmarcado: desliga as capturas e a gravação em segundo plano; o Game Bar continua abrindo (Win+G). Desmarque se você não grava pelo Game Bar. Vale ao abrir o jogo de novo." />
+                        <TextBlock Text="Desmarque se você não grava pelo Game Bar: libera GPU e disco. Vale ao abrir o jogo de novo." Style="{StaticResource Note}" />
+
+                        <CheckBox IsChecked="{Binding HardwareGpuScheduling}" IsEnabled="{Binding IsAdmin}" Content="Agendamento de GPU acelerado por hardware" Margin="0,12,0,0"
+                                  ToolTip="A própria placa de vídeo organiza a fila de trabalho, em vez do Windows. Pode reduzir um pouco a latência e o uso de CPU, mas o efeito varia por jogo e driver: em algumas máquinas dá mais FPS, em outras causa travadas. Precisa de placa e driver compatíveis (GTX 1000 em diante com driver recente). Se piorar algo, desmarque. Vale depois de reiniciar." />
+                        <TextBlock Style="{StaticResource Note}">
+                            <Run Text="Efeito varia por jogo. Vale depois de reiniciar." />
+                            <Run Text="{Binding HagsNow, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Durante o jogo" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="Muda só enquanto um jogo está aberto e volta sozinho quando ele fecha, como o resto do boost." />
+
+                <Border Style="{StaticResource Panel}" Padding="14,12">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="Plano de energia" Style="{StaticResource FieldLabel}" />
+                            <ComboBox ItemsSource="{Binding PowerSchemes}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding PowerScheme}"
+                                      Style="{StaticResource ChoiceCombo}"
+                                      ToolTip="Plano de energia que o Windows usa enquanto um jogo está aberto. Ao fechar o jogo volta o plano de antes; se o Folga fechar no meio, ele volta na próxima vez que abrir. Planos de alto desempenho seguram o clock da CPU alto e cortam a demora para acelerar; em Ryzen, o plano da AMD (Ryzen High Performance) costuma ser a melhor escolha. Vale no próximo jogo." />
+                        </DockPanel>
+                        <TextBlock Text="{Binding PowerNow}" Style="{StaticResource Text.Label}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

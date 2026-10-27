@@ -20,6 +20,7 @@ public sealed partial class MainViewModel : ObservableObject
         SegundoPlano = new SegundoPlanoViewModel(services);
         Rede = new RedeViewModel(services);
         Overlay = new OverlayViewModel(services);
+        Sistema = new SistemaViewModel(services);
         Pages =
         [
             new("Agora", Agora, "O jogo detectado, o botão Boost, CPU e RAM ao vivo e o mapa de núcleos."),
@@ -27,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
             new("Segundo plano", SegundoPlano, "Regras para navegador, Discord e launchers enquanto um jogo está aberto, e o estado real de cada um."),
             new("Rede", Rede, "Quem está usando download e upload agora, e o que o Folga faz na rede durante o jogo."),
             new("Overlay", Overlay, "Os números do jogo desenhados por cima do jogo pelo RTSS: o que aparece, nomes, tamanho, cores e canto."),
+            new("Sistema", Sistema, "Ajustes do próprio Windows: arquivo de paginação, memória compactada, Modo de Jogo, otimizações de janela, capturas do Game Bar, agendamento de GPU e plano de energia durante o jogo. Avisa quando precisa reiniciar."),
         ];
         _selectedPage = Pages[0];
     }
@@ -36,6 +38,7 @@ public sealed partial class MainViewModel : ObservableObject
     public SegundoPlanoViewModel SegundoPlano { get; }
     public RedeViewModel Rede { get; }
     public OverlayViewModel Overlay { get; }
+    public SistemaViewModel Sistema { get; }
     public IReadOnlyList<NavPage> Pages { get; }
 
     public string Version { get; } = "v" + typeof(MainViewModel).Assembly.GetName().Version?.ToString(2);

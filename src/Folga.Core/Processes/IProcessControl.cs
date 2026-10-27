@@ -32,13 +32,15 @@ public enum ChangeKind
     BitsSuspended,
     /// <summary>Política de QoS criada pelo Folga (ExeName = nome da política); desfazer = remover.</summary>
     QosPolicy,
+    /// <summary>Plano de energia trocado durante o jogo (ExeName = GUID do plano de antes); desfazer = voltar a ele.</summary>
+    PowerScheme,
 }
 
 public static class ChangeKinds
 {
-    /// <summary>Alterações num processo, desfeitas pelo <see cref="IProcessControl"/>. O resto é do sistema (rede, serviços, registro).</summary>
+    /// <summary>Alterações num processo, desfeitas pelo <see cref="IProcessControl"/>. O resto é do sistema (rede, serviços, registro, energia).</summary>
     public static bool IsProcess(ChangeKind kind) =>
-        kind is not (ChangeKind.Ifeo or ChangeKind.ServiceStopped or ChangeKind.BitsSuspended or ChangeKind.QosPolicy);
+        kind is not (ChangeKind.Ifeo or ChangeKind.ServiceStopped or ChangeKind.BitsSuspended or ChangeKind.QosPolicy or ChangeKind.PowerScheme);
 
     public static bool IsNetwork(ChangeKind kind) =>
         kind is ChangeKind.ServiceStopped or ChangeKind.BitsSuspended or ChangeKind.QosPolicy;
