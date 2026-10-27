@@ -18,6 +18,7 @@ internal static unsafe partial class Kernel32
     public const uint PROCESS_QUERY_INFORMATION = 0x0400;
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     public const uint PROCESS_SET_LIMITED_INFORMATION = 0x2000;
+    public const uint PROCESS_SUSPEND_RESUME = 0x0800;
 
     public const int ERROR_ACCESS_DENIED = 5;
     public const int ERROR_INVALID_PARAMETER = 87;
@@ -114,6 +115,12 @@ internal static unsafe partial class Ntdll
 
     [LibraryImport("ntdll.dll")]
     public static partial int NtQuerySystemInformation(int infoClass, void* info, uint length, out uint returned);
+
+    [LibraryImport("ntdll.dll")]
+    public static partial int NtSuspendProcess(ProcessHandle process);
+
+    [LibraryImport("ntdll.dll")]
+    public static partial int NtResumeProcess(ProcessHandle process);
 }
 
 internal static partial class Advapi32

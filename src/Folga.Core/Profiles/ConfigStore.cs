@@ -29,7 +29,13 @@ public sealed class ConfigStore(string path)
         }
         try
         {
-            return JsonSerializer.Deserialize<FolgaConfig>(File.ReadAllText(FilePath), Json) ?? DefaultConfig.Create();
+            var config = JsonSerializer.Deserialize<FolgaConfig>(File.ReadAllText(FilePath), Json) ?? DefaultConfig.Create();
+            if (DefaultConfig.Migrate(config))
+            {
+                Save(config);
+                Log.Info($"config.json migrado para a versão {config.Version}");
+            }
+            return config;
         }
         catch (JsonException ex)
         {

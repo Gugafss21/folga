@@ -8,7 +8,7 @@ namespace Folga.Core.Processes;
 public sealed unsafe class WindowsProcessControl : IProcessControl
 {
     private const uint ReadAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_QUERY_INFORMATION;
-    private const uint WriteAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION | PROCESS_SET_LIMITED_INFORMATION | PROCESS_SET_QUOTA;
+    private const uint WriteAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION | PROCESS_SET_LIMITED_INFORMATION | PROCESS_SET_QUOTA | PROCESS_SUSPEND_RESUME;
 
     private readonly int _ownPid = Environment.ProcessId;
 
@@ -96,6 +96,10 @@ public sealed unsafe class WindowsProcessControl : IProcessControl
                 value = [min, max, flags];
                 return TweakResult.Ok;
             }
+            case ChangeKind.Suspended:
+                // O Windows não expõe se o processo está congelado; só o Folga congela, então o original é "rodando".
+                value = [0];
+                return TweakResult.Ok;
             default:
                 return TweakResult.Failed;
         }
@@ -142,6 +146,8 @@ public sealed unsafe class WindowsProcessControl : IProcessControl
                 if ((flags & QUOTA_LIMITS_HARDWS_MIN_ENABLE) == 0) flags |= QUOTA_LIMITS_HARDWS_MIN_DISABLE;
                 return SetProcessWorkingSetSizeEx(h, (nint)value[0], (nint)value[1], flags) ? TweakResult.Ok : LastError();
             }
+            case ChangeKind.Suspended:
+                return NtResult(value[0] == 1 ? Ntdll.NtSuspendProcess(h) : Ntdll.NtResumeProcess(h));
             default:
                 return TweakResult.Failed;
         }
@@ -176,6 +182,7 @@ public sealed unsafe class WindowsProcessControl : IProcessControl
     {
         ChangeKind.CpuSets => PROCESS_SET_LIMITED_INFORMATION,
         ChangeKind.WorkingSetLimit => PROCESS_SET_QUOTA,
+        ChangeKind.Suspended => PROCESS_SUSPEND_RESUME,
         _ => PROCESS_SET_INFORMATION,
     };
 

@@ -4,6 +4,7 @@ using Folga.Core.Diagnostics;
 using Folga.Core.Engine;
 using Folga.Core.Journal;
 using Folga.Core.Memory;
+using Folga.Core.Network;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
 
@@ -25,8 +26,9 @@ public sealed class AppServices : IDisposable
         var control = new WindowsProcessControl();
         var memory = new WindowsSystemMemory();
         var topology = CpuTopology.FromSystem();
+        var journal = new ChangeJournal(ChangeJournal.DefaultPath);
         var engine = new BoostEngine(store.Load(), topology, control, new RegistryIfeoStore(), memory,
-            new ChangeJournal(ChangeJournal.DefaultPath), ProcessWatcherFactory.Create(control));
+            journal, ProcessWatcherFactory.Create(control), new WindowsNetworkControl(journal));
         return new AppServices
         {
             Store = store,

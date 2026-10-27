@@ -16,17 +16,18 @@ public sealed partial class GameRowViewModel : ObservableObject
     [ObservableProperty] private PriorityLevel _priority = PriorityLevel.High;
     [ObservableProperty] private GameCores _cores = GameCores.All;
     [ObservableProperty] private bool _useIfeoFallback = true;
+    [ObservableProperty] private bool _markDscp;
 
     public static GameRowViewModel From(GameProfile p) => new()
     {
         Enabled = p.Enabled, Name = p.Name, ExecutablesText = string.Join(", ", p.Executables),
-        Priority = p.Priority, Cores = p.Cores, UseIfeoFallback = p.UseIfeoFallback,
+        Priority = p.Priority, Cores = p.Cores, UseIfeoFallback = p.UseIfeoFallback, MarkDscp = p.MarkDscp,
     };
 
     public GameProfile ToModel() => new()
     {
         Enabled = Enabled, Name = Name.Trim(), Executables = SplitList(ExecutablesText),
-        Priority = Priority, Cores = Cores, UseIfeoFallback = UseIfeoFallback,
+        Priority = Priority, Cores = Cores, UseIfeoFallback = UseIfeoFallback, MarkDscp = MarkDscp,
     };
 
     public static List<string> SplitList(string text) =>

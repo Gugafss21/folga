@@ -21,12 +21,15 @@ public sealed partial class RuleRowViewModel : ObservableObject
     [ObservableProperty] private bool _lowMemoryPriority = true;
     [ObservableProperty] private int _memoryBudgetMb;
     [ObservableProperty] private int _hardWorkingSetCapMb;
+    [ObservableProperty] private int _uploadLimitKbps;
+    [ObservableProperty] private bool _suspendDuringGame;
 
     public static RuleRowViewModel From(BackgroundRule r) => new()
     {
         Enabled = r.Enabled, Name = r.Name, ExecutablesText = string.Join(", ", r.Executables),
         Priority = Choices.From(r.Priority), Cores = r.Cores, EcoQos = r.EcoQos, LowIoPriority = r.LowIoPriority,
         LowMemoryPriority = r.LowMemoryPriority, MemoryBudgetMb = r.MemoryBudgetMb, HardWorkingSetCapMb = r.HardWorkingSetCapMb,
+        UploadLimitKbps = r.UploadLimitKbps, SuspendDuringGame = r.SuspendDuringGame,
     };
 
     public BackgroundRule ToModel() => new()
@@ -35,6 +38,7 @@ public sealed partial class RuleRowViewModel : ObservableObject
         Priority = Choices.ToLevel(Priority), Cores = Cores, EcoQos = EcoQos, LowIoPriority = LowIoPriority,
         LowMemoryPriority = LowMemoryPriority, MemoryBudgetMb = Math.Max(0, MemoryBudgetMb),
         HardWorkingSetCapMb = Math.Max(0, HardWorkingSetCapMb),
+        UploadLimitKbps = Math.Max(0, UploadLimitKbps), SuspendDuringGame = SuspendDuringGame,
     };
 }
 

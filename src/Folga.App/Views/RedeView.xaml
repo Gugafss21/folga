@@ -1,0 +1,77 @@
+<UserControl x:Class="Folga.App.Views.RedeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             xmlns:v="clr-namespace:Folga.App.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:RedeViewModel}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="200" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Rede" Style="{StaticResource Text.Headline}" />
+            <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                       Text="A velocidade da internet é decidida pelo provedor e pelo roteador. O que faz o ping subir no jogo quase sempre é outro app usando o upload ou baixando muito ao mesmo tempo. Aqui você vê quem está usando a rede agora." />
+        </StackPanel>
+
+        <!-- Quem usa a rede agora -->
+        <DataGrid Grid.Row="1" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="App" Width="2*"
+                                        v:Hint.Text="Apps que enviaram ou receberam dados no último segundo, do que mais usa para o que menos usa. O jogo aparece em âmbar.">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Name" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsGame}" Value="True">
+                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Processos" Binding="{Binding Processes}" Width="*"
+                                    v:Hint.Text="Quantos processos do app usaram a rede no último segundo (o navegador usa um por aba)." />
+                <DataGridTextColumn Header="Download" Binding="{Binding Download}" Width="*"
+                                    v:Hint.Text="Dados recebidos por segundo. O Folga não limita download: isso exigiria um driver de rede, arriscado com anti-cheat e antivírus." />
+                <DataGridTextColumn Header="Upload" Binding="{Binding Upload}" Width="*"
+                                    v:Hint.Text="Dados enviados por segundo. Upload alto em outro app é a causa mais comum de ping alto no jogo." />
+                <DataGridTextColumn Header="Limite no jogo" Binding="{Binding Limit}" Width="*"
+                                    v:Hint.Text="Limite de upload que o app recebe enquanto um jogo está aberto. Configure na coluna Upload da tela Segundo plano." />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="2" Text="{Binding MonitorStatus}" Style="{StaticResource Text.Label}" Margin="0,8,0,0" />
+
+        <!-- O que o Folga faz na rede durante o jogo -->
+        <Border Grid.Row="3" Style="{StaticResource Panel}" Padding="14,12" Margin="0,16,0,0">
+            <StackPanel>
+                <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Text.Body}" Margin="0,0,0,10" />
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+                            ToolTip="Grava a opção e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica." />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <CheckBox IsChecked="{Binding PauseWindowsUpdate}" VerticalAlignment="Center"
+                              Content="Pausar o Windows Update e downloads em segundo plano durante o jogo"
+                              ToolTip="Com um jogo aberto, o Folga para o serviço de entrega do Windows Update (Delivery Optimization) e suspende os downloads BITS. Tudo é retomado quando o jogo fecha. Não cancela nenhuma atualização, só adia." />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource Panel}" Padding="14,12" Margin="0,12,0,0">
+            <StackPanel>
+                <TextBlock Text="O maior ganho fica fora do Folga" Style="{StaticResource Text.Section}" />
+                <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                           Text="Jogue no cabo em vez do Wi-Fi e, se o roteador tiver, ative SQM ou QoS inteligente (fq_codel ou cake). Isso segura o ping mesmo quando outra pessoa da casa está baixando ou fazendo upload." />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

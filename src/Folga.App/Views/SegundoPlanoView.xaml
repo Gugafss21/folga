@@ -77,13 +77,14 @@
                         ToolTip="Grava as regras e o limite da standby list e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
                 <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
             </DockPanel>
-            <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}">
+            <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}"
+                      FrozenColumnCount="2" HorizontalScrollBarVisibility="Auto">
                 <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Ativa" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="50"
+                    <DataGridCheckBoxColumn Header="Ativa" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="58"
                                             v:Hint.Text="Desmarcada: a regra fica guardada, mas o Folga não mexe nesse app." />
-                    <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="1.3*"
+                    <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="130"
                                         v:Hint.Text="Nome que aparece na tabela de cima. Só para você identificar." />
-                    <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="1.6*"
+                    <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="180"
                                         v:Hint.Text="Nome do .exe do app; vários separados por vírgula. Aceita * (ex.: Epic*.exe). Todos os processos com esse nome entram na regra." />
                     <DataGridComboBoxColumn Header="Prioridade" Width="136"
                                             ItemsSource="{x:Static vm:Choices.BackgroundPriorities}"
@@ -97,16 +98,20 @@
                                             SelectedValueBinding="{Binding Cores}"
                                             EditingElementStyle="{StaticResource ChoiceCombo}"
                                             v:Hint.Text="Para quais núcleos o app é mandado durante o jogo (CPU Sets do Windows). No seu Ryzen, Automático = núcleo 6, o último do mapa de núcleos." />
-                    <DataGridCheckBoxColumn Header="EcoQoS" Binding="{Binding EcoQos, UpdateSourceTrigger=PropertyChanged}" Width="62"
+                    <DataGridCheckBoxColumn Header="EcoQoS" Binding="{Binding EcoQos, UpdateSourceTrigger=PropertyChanged}" Width="74"
                                             v:Hint.Text="Liga o modo de eficiência do Windows no app: clock mais baixo, menos disputa com o jogo. Deixe desmarcado em apps de voz (Discord) se a voz picotar." />
-                    <DataGridCheckBoxColumn Header="I/O ↓" Binding="{Binding LowIoPriority, UpdateSourceTrigger=PropertyChanged}" Width="56"
+                    <DataGridCheckBoxColumn Header="I/O ↓" Binding="{Binding LowIoPriority, UpdateSourceTrigger=PropertyChanged}" Width="62"
                                             v:Hint.Text="Prioridade de disco baixa: o app lê e grava no SSD/HD depois do jogo. Ajuda quando o jogo carrega mapa enquanto algo baixa ou sincroniza." />
-                    <DataGridCheckBoxColumn Header="Mem. ↓" Binding="{Binding LowMemoryPriority, UpdateSourceTrigger=PropertyChanged}" Width="62"
+                    <DataGridCheckBoxColumn Header="Mem. ↓" Binding="{Binding LowMemoryPriority, UpdateSourceTrigger=PropertyChanged}" Width="70"
                                             v:Hint.Text="Prioridade de memória baixa: quando a RAM aperta, o Windows tira primeiro as páginas deste app, não as do jogo." />
-                    <DataGridTextColumn Header="RAM MB" Binding="{Binding MemoryBudgetMb}" Width="70"
+                    <DataGridTextColumn Header="RAM MB" Binding="{Binding MemoryBudgetMb}" Width="82"
                                         v:Hint.Text="Orçamento de RAM do app inteiro, em MB (todas as abas somadas). Acima dele, a cada 5 s os maiores processos são esvaziados: a memória vai para o disco e o app continua aberto, só mais lento ao voltar. 0 = sem orçamento." />
-                    <DataGridTextColumn Header="Teto MB" Binding="{Binding HardWorkingSetCapMb}" Width="70"
+                    <DataGridTextColumn Header="Teto MB" Binding="{Binding HardWorkingSetCapMb}" Width="82"
                                         v:Hint.Text="Teto rígido por processo, em MB. Nenhum processo do app passa disso na RAM; o excesso vai para o disco. Mais agressivo que o orçamento e pode deixar o app lento. 0 = desligado (recomendado)." />
+                    <DataGridTextColumn Header="Upload kbps" Binding="{Binding UploadLimitKbps}" Width="104"
+                                        v:Hint.Text="Limite de upload do app durante o jogo, em kbit/s (4000 = 4 Mbit/s), por política de QoS do Windows. Segura backups, sincronização e envios que enchem o roteador e sobem o ping. Só vale para .exe sem *. 0 = sem limite." />
+                    <DataGridCheckBoxColumn Header="Congelar" Binding="{Binding SuspendDuringGame, UpdateSourceTrigger=PropertyChanged}" Width="86"
+                                            v:Hint.Text="Congela o app inteiro enquanto o jogo estiver aberto: zero CPU, disco e rede. Ele volta exatamente de onde parou quando o jogo fecha. Agressivo: o app não responde nesse tempo. Evite no OneDrive se o jogo salvar em pasta sincronizada." />
                 </DataGrid.Columns>
             </DataGrid>
         </DockPanel>

@@ -3,6 +3,7 @@ using Folga.Core.Detection;
 using Folga.Core.Journal;
 using Folga.Core.Logging;
 using Folga.Core.Memory;
+using Folga.Core.Network;
 using Folga.Core.Processes;
 using Folga.Core.Profiles;
 
@@ -37,6 +38,7 @@ public sealed class BoostEngine : IDisposable
     private readonly ISystemMemory _memory;
     private readonly ChangeJournal _journal;
     private readonly IProcessWatcher _watcher;
+    private readonly INetworkControl _network;
     private readonly TimeProvider _time;
     private readonly Dictionary<int, (GameProfile Profile, ProcessRef Process, string Note)> _games = [];
     private readonly Dictionary<int, (BackgroundRule Rule, ProcessRef Process)> _background = [];
@@ -53,7 +55,7 @@ public sealed class BoostEngine : IDisposable
     public event Action? StateChanged;
 
     public BoostEngine(FolgaConfig config, CpuTopology topology, IProcessControl control, IIfeoStore ifeo,
-        ISystemMemory memory, ChangeJournal journal, IProcessWatcher watcher, TimeProvider? time = null)
+        ISystemMemory memory, ChangeJournal journal, IProcessWatcher watcher, INetworkControl network, TimeProvider? time = null)
     {
         _config = config;
         Topology = topology;
@@ -62,6 +64,7 @@ public sealed class BoostEngine : IDisposable
         _memory = memory;
         _journal = journal;
         _watcher = watcher;
+        _network = network;
         _time = time ?? TimeProvider.System;
     }
 
@@ -158,6 +161,7 @@ public sealed class BoostEngine : IDisposable
             EndSession();
         }
         _watcher.Dispose();
+        _network.Dispose(); // espera a rede ser desfeita antes de o app sair
     }
 
     // ---- eventos de processo ----
@@ -189,14 +193,14 @@ public sealed class BoostEngine : IDisposable
             if (_games.Remove(pid, out var game))
             {
                 Log.Info($"{game.Profile.Name} fechou ({game.Process.ExeName}, PID {pid})");
-                _journal.RemoveWhere(e => e.Kind != ChangeKind.Ifeo && e.Is(game.Process));
+                _journal.RemoveWhere(e => ChangeKinds.IsProcess(e.Kind) && e.Is(game.Process));
                 if (_games.Count == 0) EndSession();
                 changed = true;
             }
             else if (_background.Remove(pid, out var bg))
             {
                 _lastTrim.Remove(pid);
-                _journal.RemoveWhere(e => e.Kind != ChangeKind.Ifeo && e.Is(bg.Process));
+                _journal.RemoveWhere(e => ChangeKinds.IsProcess(e.Kind) && e.Is(bg.Process));
                 changed = true;
             }
         }
@@ -238,6 +242,7 @@ public sealed class BoostEngine : IDisposable
         var interval = TimeSpan.FromSeconds(Math.Max(1, _config.Memory.GovernorIntervalSeconds));
         _tick?.Dispose();
         _tick = _time.CreateTimer(_ => Tick(), null, interval, interval);
+        _network.Begin(NetworkPlanner.Build(_config, _games.Values.Select(g => (g.Profile, g.Process.ExeName))));
         Log.Info($"Sessão iniciada: {_background.Count} processos de fundo segurados");
     }
 
@@ -248,9 +253,10 @@ public sealed class BoostEngine : IDisposable
         _games.Clear();
         _background.Clear();
         _lastTrim.Clear();
+        _network.End();
 
         var reverted = 0;
-        var entries = _journal.Entries.Where(e => e.Kind != ChangeKind.Ifeo).ToList();
+        var entries = _journal.Entries.Where(e => ChangeKinds.IsProcess(e.Kind)).ToList();
         foreach (var entry in entries)
         {
             var result = _control.Write(entry.Process, entry.Kind, entry.Original);
@@ -266,6 +272,7 @@ public sealed class BoostEngine : IDisposable
     private void RecoverFromCrash()
     {
         var pending = _journal.Entries.Where(e => e.Kind != ChangeKind.Ifeo).ToList();
+        // Processos e rede: EndSession desfaz os dois (a rede na fila do INetworkControl).
         if (pending.Count == 0) return;
         Log.Warn($"Diário com {pending.Count} alterações de uma sessão anterior; restaurando");
         EndSession();
@@ -330,6 +337,7 @@ public sealed class BoostEngine : IDisposable
         if (rule.LowIoPriority) tweaks.Add((ChangeKind.IoPriority, [1]));
         if (rule.LowMemoryPriority) tweaks.Add((ChangeKind.MemoryPriority, [2]));
         if (rule.HardWorkingSetCapMb > 0) tweaks.Add((ChangeKind.WorkingSetLimit, [rule.HardWorkingSetCapMb]));
+        if (rule.SuspendDuringGame) tweaks.Add((ChangeKind.Suspended, [1]));
 
         var results = Apply(process, tweaks);
         if (results.Values.All(r => r == TweakResult.Gone)) return false;

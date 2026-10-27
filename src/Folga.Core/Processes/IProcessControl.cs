@@ -24,6 +24,24 @@ public enum ChangeKind
     WorkingSetLimit,
     /// <summary>Valor CpuPriorityClass no IFEO; [] = não existia. Persistente: não é desfeito ao fechar o jogo.</summary>
     Ifeo,
+    /// <summary>[0] rodando, [1] congelado (NtSuspendProcess)</summary>
+    Suspended,
+    /// <summary>Serviço parado pelo Folga (ExeName = nome do serviço); desfazer = iniciar de novo.</summary>
+    ServiceStopped,
+    /// <summary>Download BITS suspenso (ExeName = id do job); desfazer = retomar.</summary>
+    BitsSuspended,
+    /// <summary>Política de QoS criada pelo Folga (ExeName = nome da política); desfazer = remover.</summary>
+    QosPolicy,
+}
+
+public static class ChangeKinds
+{
+    /// <summary>Alterações num processo, desfeitas pelo <see cref="IProcessControl"/>. O resto é do sistema (rede, serviços, registro).</summary>
+    public static bool IsProcess(ChangeKind kind) =>
+        kind is not (ChangeKind.Ifeo or ChangeKind.ServiceStopped or ChangeKind.BitsSuspended or ChangeKind.QosPolicy);
+
+    public static bool IsNetwork(ChangeKind kind) =>
+        kind is ChangeKind.ServiceStopped or ChangeKind.BitsSuspended or ChangeKind.QosPolicy;
 }
 
 public enum TweakResult { Ok, AccessDenied, Gone, Failed }

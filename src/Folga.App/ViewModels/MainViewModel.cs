@@ -18,11 +18,13 @@ public sealed partial class MainViewModel : ObservableObject
         Agora = new AgoraViewModel(services);
         Jogos = new JogosViewModel(services);
         SegundoPlano = new SegundoPlanoViewModel(services);
+        Rede = new RedeViewModel(services);
         Pages =
         [
             new("Agora", Agora, "O jogo detectado, o botão Boost, CPU e RAM ao vivo e o mapa de núcleos."),
             new("Jogos", Jogos, "Lista de jogos que o Folga reconhece e o que fazer quando cada um abre."),
             new("Segundo plano", SegundoPlano, "Regras para navegador, Discord e launchers enquanto um jogo está aberto, e o estado real de cada um."),
+            new("Rede", Rede, "Quem está usando download e upload agora, e o que o Folga faz na rede durante o jogo."),
         ];
         _selectedPage = Pages[0];
     }
@@ -30,6 +32,7 @@ public sealed partial class MainViewModel : ObservableObject
     public AgoraViewModel Agora { get; }
     public JogosViewModel Jogos { get; }
     public SegundoPlanoViewModel SegundoPlano { get; }
+    public RedeViewModel Rede { get; }
     public IReadOnlyList<NavPage> Pages { get; }
 
     public string Version { get; } = "v" + typeof(MainViewModel).Assembly.GetName().Version?.ToString(2);
@@ -48,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Agora.IsVisible = WindowVisible && SelectedPage.ViewModel == Agora;
         SegundoPlano.IsVisible = WindowVisible && SelectedPage.ViewModel == SegundoPlano;
+        Rede.IsVisible = WindowVisible && SelectedPage.ViewModel == Rede;
     }
 
     [RelayCommand]

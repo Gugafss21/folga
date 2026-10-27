@@ -18,6 +18,7 @@ public sealed class BoostEngineTests : IDisposable
     private readonly FakeMemory _memory = new();
     private readonly FakeWatcher _watcher = new();
     private readonly FakeTimeProvider _time = new();
+    private readonly FakeNetwork _network = new();
 
     public void Dispose() => _dir.Dispose();
 
@@ -33,7 +34,7 @@ public sealed class BoostEngineTests : IDisposable
 
     private BoostEngine Engine(FolgaConfig? config = null, ChangeJournal? journal = null) =>
         new(config ?? Config(), TopologyTests.Ryzen5500X3D(), _control, _ifeo, _memory,
-            journal ?? new ChangeJournal(_dir.File("journal.json")), _watcher, _time);
+            journal ?? new ChangeJournal(_dir.File("journal.json")), _watcher, _network, _time);
 
     [Fact]
     public void Jogo_abrindo_segura_o_fundo_e_fechar_desfaz_tudo()

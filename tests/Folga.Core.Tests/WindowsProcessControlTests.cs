@@ -88,3 +88,27 @@ public sealed class WindowsProcessControlTests : IDisposable
         Assert.InRange(snapshot.AvailableBytes, 1, snapshot.TotalBytes);
     }
 }
+
+public sealed class SuspendTests
+{
+    [Fact]
+    public void Congela_e_descongela_um_processo_real()
+    {
+        var control = new WindowsProcessControl();
+        using var child = Process.Start(new ProcessStartInfo("cmd.exe", "/c ping -n 30 127.0.0.1 >nul") { CreateNoWindow = true, UseShellExecute = false })!;
+        try
+        {
+            var r = control.Resolve(child.Id, "cmd.exe")!;
+            Assert.Equal(TweakResult.Ok, control.Write(r, ChangeKind.Suspended, [1]));
+            child.Refresh();
+            Assert.All(child.Threads.Cast<ProcessThread>(), t => Assert.Equal(ThreadWaitReason.Suspended, t.WaitReason));
+            Assert.Equal(TweakResult.Ok, control.Write(r, ChangeKind.Suspended, [0]));
+            child.Refresh();
+            Assert.DoesNotContain(child.Threads.Cast<ProcessThread>(), t => t.ThreadState == System.Diagnostics.ThreadState.Wait && t.WaitReason == ThreadWaitReason.Suspended);
+        }
+        finally
+        {
+            child.Kill(entireProcessTree: true);
+        }
+    }
+}

@@ -61,6 +61,8 @@
                                         v:Hint.Text="Quais núcleos o jogo pode usar. Todos é o recomendado; os apps de fundo já são afastados para o último núcleo." />
                 <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
                                         v:Hint.Text="Jogos com anti-cheat (EAC, BattlEye) às vezes bloqueiam a mudança de prioridade. Marcado: o Folga grava a prioridade no registro do Windows (IFEO) e ela vale a partir da próxima vez que o jogo abrir. Nada é injetado no jogo." />
+                <DataGridCheckBoxColumn Header="DSCP 46" Binding="{Binding MarkDscp, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                                        v:Hint.Text="Marca os pacotes do jogo como tráfego prioritário (DSCP 46, o mesmo de chamadas de voz). Só ajuda se o roteador tiver QoS que respeite a marcação; sem isso, não muda nada. Desligado por padrão." />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

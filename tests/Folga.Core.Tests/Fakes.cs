@@ -23,6 +23,7 @@ internal sealed class FakeProcessControl : IProcessControl
             [ChangeKind.IoPriority] = [2],
             [ChangeKind.MemoryPriority] = [5],
             [ChangeKind.WorkingSetLimit] = [204800, 1413120, 0],
+            [ChangeKind.Suspended] = [0],
         };
     }
 
@@ -93,6 +94,15 @@ internal sealed class FakeMemory : ISystemMemory
     public int Purges { get; private set; }
     public MemorySnapshot Read() => Snapshot;
     public bool PurgeStandbyList() { Purges++; return true; }
+}
+
+internal sealed class FakeNetwork : Folga.Core.Network.INetworkControl
+{
+    public List<Folga.Core.Network.NetworkPlan> Begun { get; } = [];
+    public int Ended { get; private set; }
+    public void Begin(Folga.Core.Network.NetworkPlan plan) => Begun.Add(plan);
+    public void End() => Ended++;
+    public void Dispose() { }
 }
 
 internal sealed class FakeWatcher : IProcessWatcher

@@ -34,6 +34,9 @@ public sealed class GameProfile
     /// <summary>Se o anti-cheat negar acesso, grava a prioridade no IFEO (vale na próxima abertura).</summary>
     public bool UseIfeoFallback { get; set; } = true;
 
+    /// <summary>Marca o tráfego do jogo com DSCP 46 (prioridade de voz). Só ajuda se o roteador respeitar QoS.</summary>
+    public bool MarkDscp { get; set; }
+
     public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
 }
 
@@ -54,6 +57,12 @@ public sealed class BackgroundRule
     /// <summary>Teto rígido de working set por processo (pagina para o disco, não derruba). 0 = desligado.</summary>
     public int HardWorkingSetCapMb { get; set; }
 
+    /// <summary>Limite de upload do app durante o jogo, em kbit/s (política de QoS do Windows). 0 = sem limite.</summary>
+    public int UploadLimitKbps { get; set; }
+
+    /// <summary>Congela o app inteiro durante o jogo (para CPU, disco e rede). Agressivo: desligado por padrão.</summary>
+    public bool SuspendDuringGame { get; set; }
+
     public bool Matches(string exe) => Enabled && ExeMatcher.MatchesAny(Executables, exe);
 }
 
@@ -66,13 +75,23 @@ public sealed class MemorySettings
     public int GovernorIntervalSeconds { get; set; } = 5;
 }
 
+public sealed class NetworkSettings
+{
+    /// <summary>Pausa o Windows Update (Delivery Optimization) e os downloads BITS enquanto um jogo está aberto.</summary>
+    public bool PauseWindowsUpdate { get; set; } = true;
+}
+
 public sealed class FolgaConfig
 {
+    /// <summary>Versão do formato; arquivos antigos são migrados em <see cref="ConfigStore.Load"/>.</summary>
+    public const int CurrentVersion = 2;
+
     public int Version { get; set; } = 1;
     public bool BoostEnabled { get; set; } = true;
     public List<GameProfile> Games { get; set; } = [];
     public List<BackgroundRule> Background { get; set; } = [];
     public MemorySettings Memory { get; set; } = new();
+    public NetworkSettings Network { get; set; } = new();
 
     public GameProfile? FindGame(string exe) => Games.FirstOrDefault(g => g.Matches(exe));
     public BackgroundRule? FindRule(string exe) => Background.FirstOrDefault(r => r.Matches(exe));
