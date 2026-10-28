@@ -44,6 +44,7 @@ public sealed class BoostEngine : IDisposable
     private readonly IPowerPlan? _power;
     private readonly TimeProvider _time;
     private readonly Dictionary<int, (GameProfile Profile, ProcessRef Process, string Note)> _games = [];
+    private readonly List<int> _gameOrder = []; // ordem de abertura (o Dictionary reaproveita vagas depois de remover)
     private readonly Dictionary<int, (BackgroundRule Rule, ProcessRef Process)> _background = [];
     private readonly Dictionary<int, DateTimeOffset> _lastTrim = [];
     private FolgaConfig _config;
@@ -97,7 +98,7 @@ public sealed class BoostEngine : IDisposable
         {
             return new EngineState(
                 _config.BoostEnabled,
-                _games.Values.Select(g => new GameStatus(g.Profile.Name, g.Process, g.Note, g.Profile)).ToList(),
+                OpenGames.Select(g => new GameStatus(g.Profile.Name, g.Process, g.Note, g.Profile)).ToList(),
                 _background.Count, _trimCount, _purgeCount, _lastPurge, _lastMemory, _config.MeasureOnly);
         }
     }
@@ -232,6 +233,7 @@ public sealed class BoostEngine : IDisposable
             if (_disposed) return;
             if (_games.Remove(pid, out var game))
             {
+                _gameOrder.Remove(pid);
                 Log.Info($"{game.Profile.Name} fechou ({game.Process.ExeName}, PID {pid})");
                 _journal.RemoveWhere(e => ChangeKinds.IsProcess(e.Kind) && e.Is(game.Process));
                 if (_games.Count == 0) EndSession();
@@ -250,7 +252,10 @@ public sealed class BoostEngine : IDisposable
     // ---- sessão ----
 
     /// <summary>O primeiro jogo da sessão: o perfil dele manda nos ajustes por jogo.</summary>
-    private GameProfile? Primary => _games.Count > 0 ? _games.Values.First().Profile : null;
+    private GameProfile? Primary => _gameOrder.Count > 0 ? _games[_gameOrder[0]].Profile : null;
+
+    /// <summary>Os jogos abertos na ordem em que abriram.</summary>
+    private IEnumerable<(GameProfile Profile, ProcessRef Process, string Note)> OpenGames => _gameOrder.Select(pid => _games[pid]);
 
     private void Rescan()
     {
@@ -269,6 +274,7 @@ public sealed class BoostEngine : IDisposable
 
         var note = _config.MeasureOnly ? "Só medindo: nada foi alterado." : ApplyGameTweaks(process, profile);
         _games[pid] = (profile, process, note);
+        _gameOrder.Add(pid);
         Log.Info($"Jogo detectado: {profile.Name} ({exe}, PID {pid}). {note}");
 
         if (_games.Count == 1) BeginSession(snapshot ?? _control.Snapshot());
@@ -291,7 +297,7 @@ public sealed class BoostEngine : IDisposable
         var interval = TimeSpan.FromSeconds(Math.Max(1, _config.Memory.GovernorIntervalSeconds));
         _tick?.Dispose();
         _tick = _time.CreateTimer(_ => Tick(), null, interval, interval);
-        _network.Begin(NetworkPlanner.Build(_config, _games.Values.Select(g => (g.Profile, g.Process.ExeName))));
+        _network.Begin(NetworkPlanner.Build(_config, OpenGames.Select(g => (g.Profile, g.Process.ExeName))));
         SwitchPowerScheme();
         Log.Info($"Sessão iniciada: {_background.Count} processos de fundo segurados");
     }
@@ -334,6 +340,7 @@ public sealed class BoostEngine : IDisposable
         _tick?.Dispose();
         _tick = null;
         _games.Clear();
+        _gameOrder.Clear();
         _background.Clear();
         _lastTrim.Clear();
         _network.End();

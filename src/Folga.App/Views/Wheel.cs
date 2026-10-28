@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Folga.App.Views;
 
@@ -24,7 +25,9 @@ public static class Wheel
 
     private static void Pass(object sender, MouseWheelEventArgs e)
     {
-        if (sender is not FrameworkElement { Parent: UIElement parent }) return;
+        if (sender is not FrameworkElement { Parent: UIElement parent } element) return;
+        // A lista aberta de uma célula (ComboBox) fica num popup, fora da árvore visual da tabela: a roda é dela.
+        if (e.OriginalSource is Visual source && !element.IsAncestorOf(source)) return;
         e.Handled = true;
         parent.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = UIElement.MouseWheelEvent });
     }

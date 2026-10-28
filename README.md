@@ -4,6 +4,12 @@ Gerenciador de desempenho para jogos no Windows. Quando um jogo do seu perfil ab
 
 **Nada é injetado no jogo.** Tudo passa por APIs do Windows, por fora do processo. Se o anti-cheat negar acesso, a prioridade vai para o IFEO do registro e vale a partir da próxima abertura.
 
+## Baixar
+
+O `Folga.exe` de cada versão está nas [releases](https://github.com/Gugafss21/folga/releases), com o hash SHA-256 ao lado. Abra, vá em **Sistema > Instalação e atualizações** e clique em **Instalar neste PC**; dali em diante o Folga avisa quando sair versão nova.
+
+[Code signing policy](CODE_SIGNING.md): Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). A política também diz com quem o Folga fala na rede (privacidade).
+
 ## Rodar
 
 ```
@@ -33,3 +39,7 @@ dotnet publish src/Folga.App -c Release -r win-x64 --self-contained -p:PublishSi
 - `src/Folga.Core`: motor sem interface (detecção por ETW, perfis, aplicadores, diário, memória, rede, telemetria).
 - `src/Folga.App`: WPF (telas Agora, Jogos, Segundo plano, Rede; ícone na bandeja).
 - `tests/Folga.Core.Tests`: testes do motor com processos falsos e contra um processo filho real.
+
+## Licença
+
+[MIT](LICENSE).

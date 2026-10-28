@@ -28,6 +28,39 @@ jobs:
           dotnet publish src/Folga.App -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true -p:DebugType=none -o publish
 
+      # Assinatura pela SignPath Foundation (CODE_SIGNING.md), só em tag e só depois que o projeto for aceito:
+      # liga sozinha quando existirem as variáveis SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG e
+      # SIGNPATH_POLICY_SLUG e o segredo SIGNPATH_API_TOKEN. Cada pedido espera a aprovação manual na SignPath.
+      - name: Enviar o .exe para assinar
+        id: unsigned
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Folga-sem-assinatura
+          path: publish/Folga.exe
+
+      - name: Assinar (SignPath)
+        if: steps.unsigned.outcome == 'success'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: Usar o .exe assinado
+        if: steps.unsigned.outcome == 'success'
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature signed/Folga.exe
+          if ($signature.Status -ne 'Valid') { throw "assinatura inválida: $($signature.Status) $($signature.StatusMessage)" }
+          "Assinado por: $($signature.SignerCertificate.Subject)"
+          Copy-Item signed/Folga.exe publish/Folga.exe -Force
+
       # Hash que o Folga confere antes de se atualizar (além do digest que o próprio GitHub calcula).
       - name: SHA-256
         shell: pwsh
@@ -46,6 +79,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          body: |
+            Baixe o `Folga.exe`, abra e vá em **Sistema > Instalação e atualizações** para instalar. O `Folga.exe.sha256` traz o hash que o Folga confere antes de se atualizar.
+
+            [Code signing policy](https://github.com/Gugafss21/folga/blob/main/CODE_SIGNING.md) · [Licença MIT](https://github.com/Gugafss21/folga/blob/main/LICENSE)
+          generate_release_notes: true
           files: |
             publish/Folga.exe
             publish/Folga.exe.sha256

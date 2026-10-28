@@ -14,8 +14,9 @@ public sealed class UpdateService : IDisposable
     private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
 
     private readonly BoostEngine _engine;
+    private readonly Lock _gate = new();
     private Timer? _timer;
-    private int _checking;
+    private Task<UpdateCheck>? _running;
 
     public UpdateService(BoostEngine engine) => _engine = engine;
 
@@ -35,9 +36,15 @@ public sealed class UpdateService : IDisposable
         await CheckNowAsync();
     }
 
-    public async Task<UpdateCheck> CheckNowAsync()
+    /// <summary>Procura agora; se uma verificação já está em andamento (a do timer), espera o resultado dela.</summary>
+    public Task<UpdateCheck> CheckNowAsync()
     {
-        if (Interlocked.Exchange(ref _checking, 1) == 1) return Last ?? new UpdateCheck(UpdateStatus.Error, Message: "já procurando");
+        lock (_gate) return _running ??= RunAsync();
+    }
+
+    private async Task<UpdateCheck> RunAsync()
+    {
+        await Task.Yield(); // _running já atribuído quando o finally rodar
         try
         {
             var check = await Updater.CheckAsync();
@@ -51,7 +58,7 @@ public sealed class UpdateService : IDisposable
         }
         finally
         {
-            Volatile.Write(ref _checking, 0);
+            lock (_gate) _running = null;
         }
     }
 

@@ -48,9 +48,14 @@ public sealed class Updater(string owner = Updater.Owner, string repo = Updater.
                 info = info with { Sha256 = ParseChecksum(await http.GetStringAsync(url, ct)) };
             return new UpdateCheck(UpdateStatus.Available, info);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            return new UpdateCheck(UpdateStatus.Error, Message: ex is TaskCanceledException ? "sem resposta do GitHub" : ex.Message);
+            return new UpdateCheck(UpdateStatus.Error, Message: ex switch
+            {
+                TaskCanceledException => "sem resposta do GitHub",
+                KeyNotFoundException or InvalidOperationException => "resposta inesperada do GitHub", // JSON sem os campos de uma release
+                _ => ex.Message,
+            });
         }
     }
 
@@ -90,45 +95,93 @@ public sealed class Updater(string owner = Updater.Owner, string repo = Updater.
         return first is { Length: 64 } && first.All(Uri.IsHexDigit) ? first.ToLowerInvariant() : null;
     }
 
-    /// <summary>Baixa a versão nova ao lado do .exe atual, confere o hash e troca os arquivos. Depois é só reabrir.</summary>
-    public async Task DownloadAndApplyAsync(UpdateInfo info, string exePath, IProgress<double>? progress = null, CancellationToken ct = default)
+    /// <summary>Onde a versão nova é baixada: ao lado do .exe atual.</summary>
+    public static string DownloadPath(string exePath) => Path.ChangeExtension(exePath, ".new.exe");
+
+    /// <summary>
+    /// Baixa a versão nova para <see cref="DownloadPath"/> e confere o hash; um download já feito com o hash
+    /// certo é reaproveitado. Download interrompido ou adulterado é apagado. Trocar fica com <see cref="Apply"/>.
+    /// </summary>
+    public async Task<string> DownloadAsync(UpdateInfo info, string exePath, IProgress<double>? progress = null, CancellationToken ct = default)
     {
         if (info.Sha256 is null) throw new InvalidOperationException("a release não tem o hash SHA-256 do Folga.exe; por segurança, não instalo");
-        var downloaded = Path.ChangeExtension(exePath, ".new.exe");
-        using (var http = Client())
-        using (var response = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct))
+        var downloaded = DownloadPath(exePath);
+        if (File.Exists(downloaded) && Sha256Of(downloaded).Equals(info.Sha256, StringComparison.OrdinalIgnoreCase)) return downloaded;
+        try
         {
+            using var http = Client();
+            using var response = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
             var total = response.Content.Headers.ContentLength;
             await using var source = await response.Content.ReadAsStreamAsync(ct);
             await using var target = File.Create(downloaded);
             var buffer = new byte[81920];
             long done = 0;
-            int read;
+            int read, percent = -1;
             while ((read = await source.ReadAsync(buffer, ct)) > 0)
             {
                 await target.WriteAsync(buffer.AsMemory(0, read), ct);
                 done += read;
-                if (total > 0) progress?.Report((double)done / total.Value);
+                if (total > 0 && (int)(done * 100 / total.Value) is var now && now != percent)
+                {
+                    percent = now; // só a cada ponto percentual, não a cada bloco
+                    progress?.Report(now / 100.0);
+                }
             }
         }
-        Apply(downloaded, info.Sha256, exePath);
+        catch
+        {
+            TryDelete(downloaded);
+            throw;
+        }
+        Verify(downloaded, info.Sha256);
+        return downloaded;
     }
 
     /// <summary>
-    /// Confere o hash do arquivo baixado e troca: o .exe em uso vira .old.exe (o Windows deixa renomear um
-    /// .exe aberto, não apagar) e o novo toma o lugar. Hash errado: apaga o baixado e não mexe em nada.
+    /// Confere o hash de novo e troca: o .exe em uso vira .old.exe (o Windows deixa renomear um .exe aberto,
+    /// não apagar) e o novo toma o lugar. Hash errado: apaga o baixado e não mexe em nada. Se o novo não
+    /// entrar (antivírus ainda examinando, por exemplo), o antigo volta, para nunca ficar sem Folga.exe.
     /// </summary>
-    public static void Apply(string downloaded, string expectedSha256, string exePath)
+    public static void Apply(string downloaded, string expectedSha256, string exePath, int attempts = 10)
+    {
+        Verify(downloaded, expectedSha256);
+        var old = Path.ChangeExtension(exePath, ".old.exe");
+        File.Move(exePath, old, overwrite: true);
+        try
+        {
+            for (var i = 1; ; i++)
+            {
+                try
+                {
+                    File.Move(downloaded, exePath);
+                    return;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && i < attempts)
+                {
+                    Thread.Sleep(300);
+                }
+            }
+        }
+        catch
+        {
+            File.Move(old, exePath);
+            throw;
+        }
+    }
+
+    private static void Verify(string downloaded, string expectedSha256)
     {
         var actual = Sha256Of(downloaded);
-        if (!actual.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
-        {
-            File.Delete(downloaded);
-            throw new InvalidDataException($"o arquivo baixado não confere com o hash publicado (esperado {expectedSha256[..12]}…, veio {actual[..12]}…)");
-        }
-        File.Move(exePath, Path.ChangeExtension(exePath, ".old.exe"), overwrite: true);
-        File.Move(downloaded, exePath);
+        if (actual.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase)) return;
+        File.Delete(downloaded);
+        throw new InvalidDataException($"o arquivo baixado não confere com o hash publicado (esperado {expectedSha256[..12]}…, veio {actual[..12]}…)");
+    }
+
+    private static void TryDelete(string file)
+    {
+        try { File.Delete(file); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 
     public static string Sha256Of(string file)

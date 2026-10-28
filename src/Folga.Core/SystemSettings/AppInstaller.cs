@@ -45,7 +45,7 @@ public static class AppInstaller
         key.SetValue("InstallLocation", InstallDir);
         key.SetValue("DisplayIcon", InstalledExe);
         key.SetValue("UninstallString", $"\"{InstalledExe}\" {UninstallArgument}");
-        key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
+        if (key.GetValue("InstallDate") is null) key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd")); // a da 1ª instalação, não a da última abertura
         key.SetValue("NoModify", 1, RegistryValueKind.DWord);
         key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
         if (File.Exists(InstalledExe)) key.SetValue("EstimatedSize", (int)(new FileInfo(InstalledExe).Length / 1024), RegistryValueKind.DWord);
@@ -72,22 +72,32 @@ public static class AppInstaller
         return folders.Where(Directory.Exists).ToList();
     }
 
-    /// <summary>Um cmd escondido espera uns 5 s (o Folga fechar) e apaga as pastas. Chamar logo antes de fechar.</summary>
+    /// <summary>
+    /// Um PowerShell escondido espera este processo sair (até 2 min) e apaga as pastas. Chamar logo antes de
+    /// fechar. Esperar pelo processo, e não um tempo fixo, garante que o .exe já está solto.
+    /// </summary>
     public static void DeleteAfterExit(IEnumerable<string> folders)
     {
-        var commands = string.Join(" & ", folders.Select(f => $"rmdir /s /q \"{f}\""));
-        if (commands.Length == 0) return;
-        Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), $"/c ping 127.0.0.1 -n 6 > nul & {commands}")
+        var list = string.Join(",", folders.Select(f => $"'{f.Replace("'", "''")}'"));
+        if (list.Length == 0) return;
+        var script = $"Wait-Process -Id {Environment.ProcessId} -Timeout 120 -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Remove-Item -LiteralPath {list} -Recurse -Force -ErrorAction SilentlyContinue";
+        Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"),
+            $"-NoProfile -NonInteractive -WindowStyle Hidden -Command \"{script}\"")
         {
             UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Path.GetTempPath(),
         });
     }
 
-    /// <summary>Sobra de uma atualização (o .exe antigo renomeado enquanto rodava): apaga ao abrir.</summary>
+    /// <summary>
+    /// Sobras de uma atualização, apagadas ao abrir: o .exe antigo renomeado enquanto rodava e uma versão
+    /// nova baixada que não chegou a entrar (download interrompido ou adiado por causa de um jogo).
+    /// </summary>
     public static void CleanUpOldExe(string exePath)
     {
-        var old = Path.ChangeExtension(exePath, ".old.exe");
-        try { if (File.Exists(old)) File.Delete(old); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        foreach (var file in new[] { Path.ChangeExtension(exePath, ".old.exe"), Updater.DownloadPath(exePath) })
+        {
+            try { if (File.Exists(file)) File.Delete(file); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
     }
 }

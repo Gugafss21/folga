@@ -120,7 +120,15 @@ public sealed partial class SistemaViewModel : ObservableObject
         try
         {
             var progress = new Progress<double>(p => UpdateText = $"Baixando o Folga {info.Version}: {p:P0}");
-            await _services.Updates.Updater.DownloadAndApplyAsync(info, _exePath, progress);
+            var downloaded = await _services.Updates.Updater.DownloadAsync(info, _exePath, progress);
+            // O download leva minutos: se um jogo abriu nesse meio-tempo, não reabre no meio da partida.
+            // O arquivo baixado fica guardado e o próximo clique só troca.
+            if (_services.Engine.GetState().SessionActive)
+            {
+                UpdateText = $"Folga {info.Version} baixado. Feche o jogo e clique em \"{UpdateButton}\" de novo para instalar.";
+                return;
+            }
+            await Task.Run(() => Updater.Apply(downloaded, info.Sha256!, _exePath));
             Log.Info($"Atualizado para {info.Version}; reabrindo");
             CurrentApp.RestartInto(_exePath);
         }

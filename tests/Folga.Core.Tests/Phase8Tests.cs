@@ -110,6 +110,36 @@ public sealed class GameProfileOverrideTests : IDisposable
     }
 
     [Fact]
+    public void Primeiro_jogo_segue_a_ordem_de_abertura_depois_que_um_fecha()
+    {
+        var control = new FakeProcessControl();
+        var watcher = new FakeWatcher();
+        var config = new FolgaConfig
+        {
+            Games =
+            [
+                new GameProfile { Name = "A", Executables = ["a.exe"] },
+                new GameProfile { Name = "B", Executables = ["b.exe"] },
+                new GameProfile { Name = "C", Executables = ["c.exe"] },
+            ],
+        };
+        using var engine = new BoostEngine(config, TopologyTests.Ryzen5500X3D(), control, new FakeIfeo(), new FakeMemory(),
+            new ChangeJournal(_dir.File("journal-ordem.json")), watcher, new FakeNetwork());
+        engine.Start();
+        foreach (var (pid, exe) in new[] { (10, "a.exe"), (20, "b.exe") })
+        {
+            control.Add(pid, exe);
+            watcher.RaiseStarted(pid, exe);
+        }
+        control.Kill(10);
+        watcher.RaiseStopped(10);
+        control.Add(30, "c.exe");
+        watcher.RaiseStarted(30, "c.exe"); // o Dictionary daria a C a vaga que era de A
+
+        Assert.Equal(["B", "C"], engine.GetState().Games.Select(g => g.ProfileName));
+    }
+
+    [Fact]
     public void Ajustes_do_jogo_sobrevivem_ao_salvar()
     {
         var store = new ConfigStore(_dir.File("config.json"));
@@ -185,7 +215,27 @@ public sealed class UpdaterTests : IDisposable
         Assert.Equal("versão nova", File.ReadAllText(exe));
         Assert.Equal("versão velha", File.ReadAllText(_dir.File("Folga.old.exe")));
 
+        File.WriteAllText(Updater.DownloadPath(exe), "download que não entrou");
         AppInstaller.CleanUpOldExe(exe); // próxima abertura
         Assert.False(File.Exists(_dir.File("Folga.old.exe")));
+        Assert.False(File.Exists(Updater.DownloadPath(exe)));
+    }
+
+    [Fact]
+    public void Se_o_novo_nao_entra_o_antigo_volta()
+    {
+        var exe = _dir.File("Folga.exe");
+        File.WriteAllText(exe, "versão velha");
+        var downloaded = Updater.DownloadPath(exe);
+        File.WriteAllText(downloaded, "versão nova");
+        var sha = Updater.Sha256Of(downloaded);
+
+        // Antivírus examinando o arquivo novo: dá para ler, não para mover.
+        using (new FileStream(downloaded, FileMode.Open, FileAccess.Read, FileShare.Read))
+            Assert.ThrowsAny<IOException>(() => Updater.Apply(downloaded, sha, exe, attempts: 2));
+
+        Assert.Equal("versão velha", File.ReadAllText(exe)); // nunca fica sem Folga.exe
+        Assert.False(File.Exists(_dir.File("Folga.old.exe")));
+        Assert.True(File.Exists(downloaded));                // o baixado continua para tentar de novo
     }
 }
