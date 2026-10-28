@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Authors>Gustavo Henrique</Authors>
     <Product>Folga</Product>
   </PropertyGroup>

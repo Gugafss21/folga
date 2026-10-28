@@ -393,11 +393,8 @@ public sealed class BoostEngine : IDisposable
     }
 
     /// <summary>"1, 2 e 3": os núcleos físicos (contados a partir de 1) que têm alguma das threads.</summary>
-    private string CoreList(IReadOnlyCollection<uint> ids)
-    {
-        var numbers = Topology.Cores.Where(core => core.Ids.Any(ids.Contains)).Select(core => (core.Index + 1).ToString()).ToList();
-        return numbers.Count <= 1 ? string.Concat(numbers) : $"{string.Join(", ", numbers[..^1])} e {numbers[^1]}";
-    }
+    private string CoreList(IReadOnlyCollection<uint> ids) =>
+        CpuTopology.NumberList(Topology.Cores.Where(core => core.Ids.Any(ids.Contains)).Select(core => core.Index + 1));
 
     private string ApplyIfeo(string exe, PriorityLevel level)
     {

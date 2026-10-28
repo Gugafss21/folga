@@ -98,14 +98,14 @@ public sealed class HitchTests : IDisposable
     }
 
     [Fact]
-    public void Gravador_ignora_total_que_volta()
+    public void Gravador_recomeca_a_conta_quando_a_cadeia_principal_troca()
     {
         var r = new HitchRecorder(16_384);
         var t = DateTimeOffset.UnixEpoch;
         r.Tick(t, true, 5, Calm);
         r.Tick(t.AddSeconds(1), true, 3, Calm);   // outra cadeia virou a principal: não vira travada negativa
-        r.Tick(t.AddSeconds(2), true, 6, Calm);
-        Assert.Equal(6, r.Factors().Single(f => f.Cause == HitchCause.AfterLoading).Hitches);
+        r.Tick(t.AddSeconds(2), true, 6, Calm);   // e as 3 dela depois da troca contam
+        Assert.Equal(8, r.Factors().Single(f => f.Cause == HitchCause.AfterLoading).Hitches);
     }
 
     [Fact]

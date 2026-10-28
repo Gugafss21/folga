@@ -163,8 +163,10 @@ public sealed class HitchRecorder(double totalRamMb)
     /// <param name="totalHitches">Travadas da partida até agora.</param>
     public void Tick(DateTimeOffset now, bool drawing, long totalHitches, SystemSample sample)
     {
+        // O total caiu: outra cadeia de apresentação virou a principal (o jogo recriou a saída de vídeo). A conta
+        // recomeça do total dela, em vez de esperar que ela passe o total da antiga.
         var hitches = Math.Max(0, totalHitches - _lastHitches);
-        _lastHitches = Math.Max(_lastHitches, totalHitches);
+        _lastHitches = totalHitches;
         if (!drawing)
         {
             _paused = true; // tempo parado não entra: não há quadro para travar

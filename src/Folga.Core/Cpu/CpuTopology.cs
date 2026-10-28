@@ -38,6 +38,13 @@ public sealed class CpuTopology
 
     public IReadOnlyList<uint> AllIds => Sets.Select(s => s.Id).ToList();
 
+    /// <summary>Números de núcleo para texto: "1", "1 e 2", "1, 2 e 3".</summary>
+    public static string NumberList(IEnumerable<int> numbers)
+    {
+        var n = numbers.Select(x => x.ToString()).ToList();
+        return n.Count <= 1 ? string.Concat(n) : $"{string.Join(", ", n[..^1])} e {n[^1]}";
+    }
+
     /// <summary>
     /// CPU Sets para onde vão os apps de fundo. Lista vazia = não restringir
     /// (CPU pequena demais para separar sem prejudicar o jogo).

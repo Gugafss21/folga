@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Folga.Core.Cleanup;
 using Folga.Core.Logging;
-using Microsoft.Diagnostics.Tracing.Session;
 
 namespace Folga.App.ViewModels;
 
@@ -38,9 +37,9 @@ public sealed partial class LimpezaViewModel : ObservableObject
         [CleanupKind.WindowsTemp] = ("Arquivos temporários do Windows",
             "A pasta Temp do próprio Windows (C:\\Windows\\Temp), com instaladores e logs que sobraram. Só os com mais de 1 dia; os em uso ficam."),
         [CleanupKind.WindowsUpdate] = ("Downloads do Windows Update",
-            "Instaladores de atualizações que o Windows já baixou. Se algum ainda for preciso, o Windows baixa de novo. Fica bloqueado quando uma atualização espera o PC reiniciar."),
+            "Instaladores de atualizações que o Windows já baixou, com mais de 1 dia (um download em andamento não é tocado). Se algum ainda for preciso, o Windows baixa de novo. Fica bloqueado quando uma atualização espera o PC reiniciar."),
         [CleanupKind.DeliveryOptimization] = ("Otimização de Entrega",
-            "Pedaços de atualizações e apps da Loja que o Windows guarda para compartilhar com outros PCs. Seguro apagar."),
+            "Pedaços de atualizações e apps da Loja que o Windows guarda para compartilhar com outros PCs, com mais de 1 dia. Seguro apagar."),
         [CleanupKind.ErrorReports] = ("Relatórios de erro do Windows",
             "Relatórios de programas que travaram, já enviados à Microsoft ou na fila para enviar."),
         [CleanupKind.CrashDumps] = ("Despejos de memória de travamentos",
@@ -76,7 +75,7 @@ public sealed partial class LimpezaViewModel : ObservableObject
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private string _total = "";
 
-    public static bool IsAdmin => TraceEventSession.IsElevated() == true;
+    public static bool IsAdmin => Environment.IsPrivilegedProcess;
     public bool NeedsAdmin => !IsAdmin;
 
     partial void OnIsVisibleChanged(bool value)
@@ -100,9 +99,10 @@ public sealed partial class LimpezaViewModel : ObservableObject
         {
             var now = DateTime.UtcNow;
             var admin = IsAdmin;
-            foreach (var row in Rows)
+            // Categorias independentes (pastas diferentes): medidas ao mesmo tempo.
+            var scans = await Task.WhenAll(Rows.Select(row => Task.Run(() => DiskCleaner.Scan(row.Target, now, admin))));
+            foreach (var (row, scan) in Rows.Zip(scans))
             {
-                var scan = await Task.Run(() => DiskCleaner.Scan(row.Target, now, admin));
                 row.Bytes = scan.Bytes;
                 row.Size = scan.FileCount == 0 ? "vazio" : $"{Size(scan.Bytes)} · {scan.FileCount.ToString("N0", CultureInfo.CurrentCulture)} arquivos";
                 row.Blocked = scan.Blocked;
@@ -144,13 +144,20 @@ public sealed partial class LimpezaViewModel : ObservableObject
         Busy = true;
         long freed = 0;
         int deleted = 0, skipped = 0;
+        var blocked = new List<string>();
         try
         {
             var now = DateTime.UtcNow;
             foreach (var row in chosen)
             {
                 Status = $"Limpando: {row.Name}…";
-                var result = await Task.Run(() => DiskCleaner.Clean(row.Target, now));
+                var result = await Task.Run(() => DiskCleaner.Clean(row.Target, now, IsAdmin));
+                if (result.Blocked is { } why)
+                {
+                    Log.Info($"Limpeza: {row.Name} pulada: {why}");
+                    blocked.Add($"{row.Name} ({why})");
+                    continue;
+                }
                 freed += result.FreedBytes;
                 deleted += result.Deleted;
                 skipped += result.Skipped;
@@ -165,7 +172,8 @@ public sealed partial class LimpezaViewModel : ObservableObject
 
         await Scan();
         Status = $"Liberados {Size(freed)} ({deleted.ToString("N0", CultureInfo.CurrentCulture)} arquivos)" +
-            (skipped > 0 ? $"; {skipped.ToString("N0", CultureInfo.CurrentCulture)} em uso ficaram." : ".");
+            (skipped > 0 ? $"; {skipped.ToString("N0", CultureInfo.CurrentCulture)} em uso ficaram." : ".") +
+            (blocked.Count > 0 ? $" Não limpou: {string.Join("; ", blocked)}." : "");
     }
 
     private static string Size(long bytes) =>

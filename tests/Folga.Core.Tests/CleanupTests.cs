@@ -39,7 +39,7 @@ public sealed class CleanupTests : IDisposable
         Assert.Equal(1, scan.FileCount);
         Assert.Null(scan.Blocked);
 
-        var result = DiskCleaner.Clean(target, Now, TestContext.Current.CancellationToken);
+        var result = DiskCleaner.Clean(target, Now, isAdmin: false, TestContext.Current.CancellationToken);
         Assert.Equal(1000, result.FreedBytes);
         Assert.False(File.Exists(old));
         Assert.True(File.Exists(fresh));
@@ -53,7 +53,7 @@ public sealed class CleanupTests : IDisposable
         Make("solto.log", 100, TimeSpan.FromDays(5));
         using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            var result = DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [_dir.Path], TimeSpan.Zero), Now, TestContext.Current.CancellationToken);
+            var result = DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [_dir.Path], TimeSpan.Zero), Now, isAdmin: false, TestContext.Current.CancellationToken);
             Assert.Equal(1, result.Deleted);
             Assert.Equal(1, result.Skipped);
         }
@@ -72,7 +72,7 @@ public sealed class CleanupTests : IDisposable
         {
             var target = new CleanupTarget(CleanupKind.UserTemp, [_dir.Path], TimeSpan.Zero);
             Assert.Equal(0, DiskCleaner.Scan(target, Now, false).FileCount);
-            DiskCleaner.Clean(target, Now, TestContext.Current.CancellationToken);
+            DiskCleaner.Clean(target, Now, isAdmin: false, TestContext.Current.CancellationToken);
             Assert.True(File.Exists(personal));
             Assert.True(Directory.Exists(link)); // nem a junção é tirada
         }
@@ -85,7 +85,7 @@ public sealed class CleanupTests : IDisposable
         var thumb = Make("thumbcache_256.db", 10, TimeSpan.FromDays(2));
         var other = Make("iconcache_32.db", 10, TimeSpan.FromDays(2));
         var nested = Make(@"sub\thumbcache_96.db", 10, TimeSpan.FromDays(2));
-        DiskCleaner.Clean(new CleanupTarget(CleanupKind.ThumbnailCache, [_dir.Path], TimeSpan.Zero, Recursive: false, Pattern: "thumbcache_*.db"), Now, TestContext.Current.CancellationToken);
+        DiskCleaner.Clean(new CleanupTarget(CleanupKind.ThumbnailCache, [_dir.Path], TimeSpan.Zero, Recursive: false, Pattern: "thumbcache_*.db"), Now, isAdmin: false, TestContext.Current.CancellationToken);
         Assert.False(File.Exists(thumb));
         Assert.True(File.Exists(other));
         Assert.True(File.Exists(nested));
@@ -101,7 +101,7 @@ public sealed class CleanupTests : IDisposable
         Directory.CreateDirectory(newDir);
         Directory.SetCreationTimeUtc(newDir, Now);
 
-        DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [_dir.Path], TimeSpan.FromDays(1)), Now, TestContext.Current.CancellationToken);
+        DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [_dir.Path], TimeSpan.FromDays(1)), Now, isAdmin: false, TestContext.Current.CancellationToken);
         Assert.False(Directory.Exists(oldDir));
         Assert.True(Directory.Exists(newDir));
     }
@@ -121,7 +121,7 @@ public sealed class CleanupTests : IDisposable
         var docs = Make("importante.txt", 10, TimeSpan.FromDays(9), Path.Combine(profile, "Downloads", "nao-existe-" + Guid.NewGuid().ToString("N")[..6]));
         try
         {
-            var r = DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [Path.Combine(profile, "Downloads")], TimeSpan.Zero), Now, TestContext.Current.CancellationToken);
+            var r = DiskCleaner.Clean(new CleanupTarget(CleanupKind.UserTemp, [Path.Combine(profile, "Downloads")], TimeSpan.Zero), Now, isAdmin: false, TestContext.Current.CancellationToken);
             Assert.Equal(0, r.Deleted);
             Assert.True(File.Exists(docs));
         }
@@ -137,6 +137,42 @@ public sealed class CleanupTests : IDisposable
             Assert.Equal(t.Kind is not (CleanupKind.DirectXShaderCache or CleanupKind.GpuShaderCache), t.SelectedByDefault);
         }
         Assert.Contains(DiskCleaner.Targets(), t => t.Kind == CleanupKind.WindowsTemp && DiskCleaner.Blocked(t, isAdmin: false) is not null);
+    }
+
+    [Fact]
+    public void Limpar_confere_o_bloqueio_na_hora()
+    {
+        var file = Make("x.tmp", 100, TimeSpan.FromDays(3));
+        var result = DiskCleaner.Clean(new CleanupTarget(CleanupKind.WindowsTemp, [_dir.Path], TimeSpan.Zero, NeedsAdmin: true), Now,
+            isAdmin: false, TestContext.Current.CancellationToken);
+        Assert.NotNull(result.Blocked);
+        Assert.Equal(0, result.Deleted);
+        Assert.True(File.Exists(file));
+    }
+
+    [Fact]
+    public void Downloads_do_Windows_Update_so_com_mais_de_um_dia()
+    {
+        Assert.All(DiskCleaner.Targets().Where(t => t.Kind is CleanupKind.WindowsUpdate or CleanupKind.DeliveryOptimization),
+            t => Assert.Equal(TimeSpan.FromDays(1), t.MinAge));
+    }
+
+    [Fact]
+    public void Resumo_da_RAM_vem_dos_pentes_e_o_mais_lento_manda()
+    {
+        MemoryModule M(int rated, int configured) => new("A1", null, null, 8192, 26, rated, configured, null, null, 1);
+        Assert.Equal(new RamInfo(2933, 2666, 26, 2), SystemInfo.Summarize([M(2666, 3200), M(3200, 2933)]));
+        Assert.Equal(new RamInfo(0, 2133, 26, 1), SystemInfo.Summarize([M(2133, 0)]));
+        Assert.Null(SystemInfo.Summarize([]));
+    }
+
+    [Fact]
+    public void Lista_de_nucleos_em_texto()
+    {
+        Assert.Equal("", Folga.Core.Cpu.CpuTopology.NumberList([]));
+        Assert.Equal("3", Folga.Core.Cpu.CpuTopology.NumberList([3]));
+        Assert.Equal("1 e 2", Folga.Core.Cpu.CpuTopology.NumberList([1, 2]));
+        Assert.Equal("1, 2 e 3", Folga.Core.Cpu.CpuTopology.NumberList([1, 2, 3]));
     }
 
     [Theory]

@@ -33,7 +33,8 @@ public sealed record CleanupTarget(
 
 public sealed record CleanupScan(CleanupTarget Target, long Bytes, int FileCount, string? Blocked);
 
-public sealed record CleanupResult(CleanupKind Kind, long FreedBytes, int Deleted, int Skipped);
+/// <summary>Blocked: não limpou nada porque a categoria estava bloqueada na hora (ver <see cref="DiskCleaner.Blocked"/>).</summary>
+public sealed record CleanupResult(CleanupKind Kind, long FreedBytes, int Deleted, int Skipped, string? Blocked = null);
 
 /// <summary>
 /// Limpeza de espaço só em caches e temporários do Windows e dos drivers. Arquivo pessoal não entra por
@@ -56,10 +57,11 @@ public static class DiskCleaner
         [
             new(CleanupKind.UserTemp, [Path.GetTempPath()], Day),
             new(CleanupKind.WindowsTemp, [Path.Combine(windows, "Temp")], Day, NeedsAdmin: true),
-            new(CleanupKind.WindowsUpdate, [Path.Combine(windows, "SoftwareDistribution", "Download")], TimeSpan.Zero, NeedsAdmin: true),
+            // Mais de 1 dia: um download em andamento (que o BITS nem sempre prende) não é apagado no meio.
+            new(CleanupKind.WindowsUpdate, [Path.Combine(windows, "SoftwareDistribution", "Download")], Day, NeedsAdmin: true),
             new(CleanupKind.DeliveryOptimization,
                 [Path.Combine(windows, @"ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache")],
-                TimeSpan.Zero, NeedsAdmin: true),
+                Day, NeedsAdmin: true),
             new(CleanupKind.ErrorReports,
                 [Path.Combine(common, @"Microsoft\Windows\WER\ReportArchive"), Path.Combine(common, @"Microsoft\Windows\WER\ReportQueue"),
                  Path.Combine(local, @"Microsoft\Windows\WER\ReportArchive"), Path.Combine(local, @"Microsoft\Windows\WER\ReportQueue")],
@@ -107,8 +109,10 @@ public static class DiskCleaner
         return new CleanupScan(target, bytes, count, Blocked(target, isAdmin));
     }
 
-    public static CleanupResult Clean(CleanupTarget target, DateTime nowUtc, CancellationToken ct = default)
+    /// <summary>Confere o bloqueio de novo na hora (a análise pode ser de minutos atrás) e apaga.</summary>
+    public static CleanupResult Clean(CleanupTarget target, DateTime nowUtc, bool isAdmin, CancellationToken ct = default)
     {
+        if (Blocked(target, isAdmin) is { } blocked) return new CleanupResult(target.Kind, 0, 0, 0, blocked);
         long freed = 0;
         int deleted = 0, skipped = 0;
         foreach (var file in Candidates(target, nowUtc).ToList())

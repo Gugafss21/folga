@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Folga.App.Services;
+using Folga.Core.Cpu;
 using Folga.Core.Engine;
 using Folga.Core.Logging;
 using Folga.Core.Processes;
@@ -26,7 +27,8 @@ public sealed partial class ThreadBarViewModel : ObservableObject
 
 public sealed partial class CoreTileViewModel : ObservableObject
 {
-    public required string Title { get; init; }
+    public required int Number { get; init; }
+    public string Title => $"Núcleo {Number}";
     public required IReadOnlyList<ThreadBarViewModel> Threads { get; init; }
     [ObservableProperty] private bool _isBackground;
     [ObservableProperty] private bool _isGameActive;
@@ -45,7 +47,7 @@ public sealed partial class AgoraViewModel : ObservableObject
         _services = services;
         Cores = new ObservableCollection<CoreTileViewModel>(services.Engine.Topology.Cores.Select(c => new CoreTileViewModel
         {
-            Title = $"Núcleo {c.Index + 1}",
+            Number = c.Index + 1,
             Threads = c.Threads.Select(t => new ThreadBarViewModel { CpuSetId = t.Id, Processor = t.Group == 0 ? t.LogicalIndex : null }).ToList(),
         }));
         CoreColumns = Math.Min(Cores.Count, 8);
@@ -76,43 +78,51 @@ public sealed partial class AgoraViewModel : ObservableObject
 
     // ---- uso real dos núcleos pelo jogo ----
 
+    // A sessão do kernel tem nome fixo: duas ao mesmo tempo se derrubariam. Por isso ligar e desligar passam por
+    // uma fila só (_coreMonitorGate), e só ela escreve _coreMonitor; a amostragem apenas lê.
+    private readonly SemaphoreSlim _coreMonitorGate = new(1, 1);
     private EtwCoreUsageMonitor? _coreMonitor;
     private HashSet<int> _coreMonitorPids = [];
     private int _coreMonitorVersion;
 
-    /// <summary>Liga a amostragem do kernel só com a tela à vista e um jogo aberto; troca quando os PIDs mudam.</summary>
+    /// <summary>
+    /// Liga a amostragem do kernel só com a tela à vista e um jogo aberto; troca quando os PIDs mudam. Se ligar
+    /// falhar, não tenta de novo com os mesmos PIDs (o aviso fica na tela).
+    /// </summary>
     private void UpdateCoreMonitor()
     {
         var state = _services.Engine.GetState();
         var pids = IsVisible && state.SessionActive ? state.Games.Select(g => g.Process.Pid).ToHashSet() : [];
-        if (pids.SetEquals(_coreMonitorPids) && (_coreMonitor is not null || pids.Count == 0)) return;
+        if (pids.SetEquals(_coreMonitorPids)) return; // já é o alvo: ligado, ligando ou falhou com estes PIDs
 
-        var old = _coreMonitor;
-        _coreMonitor = null;
         _coreMonitorPids = pids;
-        var version = ++_coreMonitorVersion;
-        Task.Run(() =>
+        var version = Interlocked.Increment(ref _coreMonitorVersion);
+        CoreSplitNote = null;
+        Task.Run(async () =>
         {
-            old?.Dispose();
-            if (pids.Count == 0) return;
-            var monitor = new EtwCoreUsageMonitor(pids);
+            await _coreMonitorGate.WaitAsync();
             try
             {
-                monitor.Start();
+                Interlocked.Exchange(ref _coreMonitor, null)?.Dispose();
+                if (pids.Count == 0 || version != Volatile.Read(ref _coreMonitorVersion)) return;
+                var monitor = new EtwCoreUsageMonitor(pids);
+                try
+                {
+                    monitor.Start();
+                }
+                catch (Exception ex)
+                {
+                    monitor.Dispose();
+                    var note = ex is UnauthorizedAccessException
+                        ? "O uso de cada núcleo pelo jogo precisa do Folga como administrador; as barras mostram o uso total."
+                        : $"Uso dos núcleos pelo jogo indisponível ({ex.Message}); as barras mostram o uso total.";
+                    Dispatch(() => { if (version == _coreMonitorVersion) CoreSplitNote = note; });
+                    return;
+                }
+                if (version == Volatile.Read(ref _coreMonitorVersion)) Volatile.Write(ref _coreMonitor, monitor);
+                else monitor.Dispose(); // a tela fechou ou o jogo trocou enquanto ligava
             }
-            catch (Exception ex)
-            {
-                monitor.Dispose();
-                Dispatch(() => CoreSplitNote = ex is UnauthorizedAccessException
-                    ? "O uso de cada núcleo pelo jogo precisa do Folga como administrador; as barras mostram o uso total."
-                    : $"Uso dos núcleos pelo jogo indisponível ({ex.Message}); as barras mostram o uso total.");
-                return;
-            }
-            Dispatch(() =>
-            {
-                if (version == _coreMonitorVersion) { _coreMonitor = monitor; CoreSplitNote = null; }
-                else Task.Run(monitor.Dispose); // a tela fechou ou o jogo trocou enquanto ligava
-            });
+            finally { _coreMonitorGate.Release(); }
         });
     }
 
@@ -210,11 +220,7 @@ public sealed partial class AgoraViewModel : ObservableObject
 
     private string Legend(bool session, bool gameEverywhere, bool hasBackground)
     {
-        string Numbers(Func<CoreTileViewModel, bool> pick)
-        {
-            var n = Cores.Where(pick).Select(c => c.Title.Replace("Núcleo ", "")).ToList();
-            return n.Count <= 1 ? string.Concat(n) : $"{string.Join(", ", n[..^1])} e {n[^1]}";
-        }
+        string Numbers(Func<CoreTileViewModel, bool> pick) => CpuTopology.NumberList(Cores.Where(pick).Select(c => c.Number));
         var bg = hasBackground ? $"Navegador e apps de fundo ficam no núcleo {Numbers(c => c.IsBackground)}." : "Nenhum núcleo reservado ao fundo.";
         if (!session) return $"Sem jogo aberto. Durante o jogo: {bg[0].ToString().ToLowerInvariant()}{bg[1..]}";
         var game = gameEverywhere ? "O jogo pode rodar em todos os núcleos." : $"O jogo pode rodar só nos núcleos {Numbers(c => c.IsGameActive)} (escolhidos na tela Jogos).";
@@ -225,7 +231,7 @@ public sealed partial class AgoraViewModel : ObservableObject
         if (Interlocked.Exchange(ref _sampling, 1) == 1) return;
         try
         {
-            var monitor = _coreMonitor;
+            var monitor = Volatile.Read(ref _coreMonitor);
             var (cpu, memory, telemetry, split) = await Task.Run(() => (_services.CpuUsage.Sample(), _services.Memory.Read(), _services.Telemetry.Snapshot(), monitor?.Take()));
 
             if (cpu is { } c)
