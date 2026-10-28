@@ -58,9 +58,15 @@ public sealed class CpuTopology
     }
 
     /// <summary>CPU Sets do jogo. Lista vazia = sem restrição (todos os núcleos).</summary>
-    public IReadOnlyList<uint> GameIds(GameCores mode, BackgroundCores backgroundMode)
+    /// <param name="customCores">Núcleos escolhidos, com <see cref="GameCores.Custom"/>. Nenhum válido ou todos = sem restrição.</param>
+    public IReadOnlyList<uint> GameIds(GameCores mode, BackgroundCores backgroundMode, IReadOnlyCollection<int>? customCores = null)
     {
         if (mode == GameCores.All) return [];
+        if (mode == GameCores.Custom)
+        {
+            var chosen = Cores.Where(c => customCores?.Contains(c.Index) == true).ToList();
+            return chosen.Count == 0 || chosen.Count == Cores.Count ? [] : chosen.SelectMany(c => c.Ids).ToList();
+        }
         var background = BackgroundIds(backgroundMode).ToHashSet();
         return background.Count == 0 ? [] : Sets.Select(s => s.Id).Where(id => !background.Contains(id)).ToList();
     }

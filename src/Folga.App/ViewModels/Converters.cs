@@ -5,18 +5,7 @@ using System.Windows.Media;
 
 namespace Folga.App.ViewModels;
 
-/// <summary>Âmbar para núcleo do jogo, cinza para núcleo do fundo.</summary>
-public sealed class CoreBrushConverter : IValueConverter
-{
-    public static CoreBrushConverter Instance { get; } = new();
-
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        Application.Current.FindResource(value is true ? "TextTertiaryBrush" : "AccentBrush");
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
-}
-
-/// <summary>[uso 0-100, altura máxima] → altura em px.</summary>
+/// <summary>[uso 0-100, altura máxima] → altura em px. Mínimo de 2 px (a barra nunca some), menos com o parâmetro "0".</summary>
 public sealed class PercentToHeightConverter : IMultiValueConverter
 {
     public static PercentToHeightConverter Instance { get; } = new();
@@ -25,7 +14,7 @@ public sealed class PercentToHeightConverter : IMultiValueConverter
     {
         var usage = values[0] is double u ? u : 0;
         var max = double.TryParse(values[1]?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var m) ? m : 0;
-        return Math.Max(2, max * Math.Clamp(usage, 0, 100) / 100);
+        return Math.Max(parameter as string == "0" ? 0 : 2, max * Math.Clamp(usage, 0, 100) / 100);
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => [];

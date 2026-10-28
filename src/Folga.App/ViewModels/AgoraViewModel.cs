@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Folga.App.Services;
 using Folga.Core.Engine;
 using Folga.Core.Logging;
+using Folga.Core.Processes;
+using Folga.Core.Profiles;
 using Folga.Core.Telemetry;
 
 namespace Folga.App.ViewModels;
@@ -13,8 +15,13 @@ namespace Folga.App.ViewModels;
 public sealed partial class ThreadBarViewModel : ObservableObject
 {
     public required uint CpuSetId { get; init; }
+    /// <summary>Número do processador lógico no Windows (para casar com a amostragem do kernel); null fora do grupo 0.</summary>
+    public required int? Processor { get; init; }
     [ObservableProperty] private double _usage;
+    /// <summary>Parte do uso que é do jogo, medida pela amostragem do kernel (0 sem jogo ou sem a medida).</summary>
+    [ObservableProperty] private double _gameUsage;
     [ObservableProperty] private string _text = "—";
+    [ObservableProperty] private string _hint = "Uso desta thread, em %.";
 }
 
 public sealed partial class CoreTileViewModel : ObservableObject
@@ -39,7 +46,7 @@ public sealed partial class AgoraViewModel : ObservableObject
         Cores = new ObservableCollection<CoreTileViewModel>(services.Engine.Topology.Cores.Select(c => new CoreTileViewModel
         {
             Title = $"Núcleo {c.Index + 1}",
-            Threads = c.Threads.Select(t => new ThreadBarViewModel { CpuSetId = t.Id }).ToList(),
+            Threads = c.Threads.Select(t => new ThreadBarViewModel { CpuSetId = t.Id, Processor = t.Group == 0 ? t.LogicalIndex : null }).ToList(),
         }));
         CoreColumns = Math.Min(Cores.Count, 8);
         RamWarning = services.Ram?.Warning;
@@ -64,7 +71,52 @@ public sealed partial class AgoraViewModel : ObservableObject
     {
         if (value) { SampleAsync(); _timer.Start(); }
         else _timer.Stop();
+        UpdateCoreMonitor();
     }
+
+    // ---- uso real dos núcleos pelo jogo ----
+
+    private EtwCoreUsageMonitor? _coreMonitor;
+    private HashSet<int> _coreMonitorPids = [];
+    private int _coreMonitorVersion;
+
+    /// <summary>Liga a amostragem do kernel só com a tela à vista e um jogo aberto; troca quando os PIDs mudam.</summary>
+    private void UpdateCoreMonitor()
+    {
+        var state = _services.Engine.GetState();
+        var pids = IsVisible && state.SessionActive ? state.Games.Select(g => g.Process.Pid).ToHashSet() : [];
+        if (pids.SetEquals(_coreMonitorPids) && (_coreMonitor is not null || pids.Count == 0)) return;
+
+        var old = _coreMonitor;
+        _coreMonitor = null;
+        _coreMonitorPids = pids;
+        var version = ++_coreMonitorVersion;
+        Task.Run(() =>
+        {
+            old?.Dispose();
+            if (pids.Count == 0) return;
+            var monitor = new EtwCoreUsageMonitor(pids);
+            try
+            {
+                monitor.Start();
+            }
+            catch (Exception ex)
+            {
+                monitor.Dispose();
+                Dispatch(() => CoreSplitNote = ex is UnauthorizedAccessException
+                    ? "O uso de cada núcleo pelo jogo precisa do Folga como administrador; as barras mostram o uso total."
+                    : $"Uso dos núcleos pelo jogo indisponível ({ex.Message}); as barras mostram o uso total.");
+                return;
+            }
+            Dispatch(() =>
+            {
+                if (version == _coreMonitorVersion) { _coreMonitor = monitor; CoreSplitNote = null; }
+                else Task.Run(monitor.Dispose); // a tela fechou ou o jogo trocou enquanto ligava
+            });
+        });
+    }
+
+    [ObservableProperty] private string? _coreSplitNote;
 
     public ObservableCollection<CoreTileViewModel> Cores { get; }
     public int CoreColumns { get; }
@@ -109,6 +161,7 @@ public sealed partial class AgoraViewModel : ObservableObject
 
     private void RefreshEngine()
     {
+        UpdateCoreMonitor();
         var state = _services.Engine.GetState();
         _syncingBoost = true;
         BoostEnabled = state.Enabled;
@@ -134,28 +187,46 @@ public sealed partial class AgoraViewModel : ObservableObject
         HeldText = state.SessionActive ? state.HeldProcesses.ToString(CultureInfo.CurrentCulture) : "—";
         CleanupText = state.SessionActive ? $"{state.TrimCount} · {state.PurgeCount}" : "—";
 
-        // Papel de cada núcleo: o que as regras ativas mandam para o fundo; o resto é do jogo.
+        // Papel de cada núcleo, lido do Windows: onde o jogo pode rodar (CPU Sets dele agora) e onde as regras
+        // põem o fundo.
         var config = _services.Engine.Config;
-        var background = config.Background.Where(r => r.Enabled)
-            .SelectMany(r => _services.Engine.Topology.BackgroundIds(r.Cores)).ToHashSet();
+        var topology = _services.Engine.Topology;
+        var background = config.Background.Where(r => r.Enabled).SelectMany(r => topology.BackgroundIds(r.Cores)).ToHashSet();
+        HashSet<uint>? gameAllowed = null; // null = todos
+        if (state.SessionActive && state.Games.Count > 0
+            && _services.Control.Read(state.Games[0].Process, ChangeKind.CpuSets, out var sets) == TweakResult.Ok && sets.Length > 0)
+            gameAllowed = sets.Select(s => (uint)s).ToHashSet();
+
         foreach (var core in Cores)
         {
-            core.IsBackground = core.Threads.All(t => background.Contains(t.CpuSetId));
-            core.IsGameActive = state.SessionActive && !core.IsBackground;
-            core.Role = core.IsBackground ? "fundo" : "jogo";
+            var bg = core.Threads.All(t => background.Contains(t.CpuSetId));
+            var game = state.SessionActive && (gameAllowed is null || core.Threads.Any(t => gameAllowed.Contains(t.CpuSetId)));
+            core.IsBackground = bg;
+            core.IsGameActive = game;
+            core.Role = game && bg ? "jogo + fundo" : game ? "jogo" : bg ? "fundo" : state.SessionActive ? "sem jogo" : "";
         }
-        var bgCores = Cores.Where(c => c.IsBackground).Select(c => c.Title.Replace("Núcleo ", "")).ToList();
-        CoreLegend = bgCores.Count == 0
-            ? "Nenhum núcleo reservado ao fundo."
-            : $"Durante o jogo, navegador e apps de fundo ficam no núcleo {string.Join(" e ", bgCores)}; o jogo usa todos.";
+        CoreLegend = Legend(state.SessionActive, gameAllowed is null, background.Count > 0);
     }
 
+    private string Legend(bool session, bool gameEverywhere, bool hasBackground)
+    {
+        string Numbers(Func<CoreTileViewModel, bool> pick)
+        {
+            var n = Cores.Where(pick).Select(c => c.Title.Replace("Núcleo ", "")).ToList();
+            return n.Count <= 1 ? string.Concat(n) : $"{string.Join(", ", n[..^1])} e {n[^1]}";
+        }
+        var bg = hasBackground ? $"Navegador e apps de fundo ficam no núcleo {Numbers(c => c.IsBackground)}." : "Nenhum núcleo reservado ao fundo.";
+        if (!session) return $"Sem jogo aberto. Durante o jogo: {bg[0].ToString().ToLowerInvariant()}{bg[1..]}";
+        var game = gameEverywhere ? "O jogo pode rodar em todos os núcleos." : $"O jogo pode rodar só nos núcleos {Numbers(c => c.IsGameActive)} (escolhidos na tela Jogos).";
+        return $"{game} {bg} Âmbar é o que o jogo está usando agora; cinza, os outros programas.";
+    }
     private async void SampleAsync()
     {
         if (Interlocked.Exchange(ref _sampling, 1) == 1) return;
         try
         {
-            var (cpu, memory, telemetry) = await Task.Run(() => (_services.CpuUsage.Sample(), _services.Memory.Read(), _services.Telemetry.Snapshot()));
+            var monitor = _coreMonitor;
+            var (cpu, memory, telemetry, split) = await Task.Run(() => (_services.CpuUsage.Sample(), _services.Memory.Read(), _services.Telemetry.Snapshot(), monitor?.Take()));
 
             if (cpu is { } c)
             {
@@ -163,8 +234,13 @@ public sealed partial class AgoraViewModel : ObservableObject
                 foreach (var thread in Cores.SelectMany(core => core.Threads))
                 {
                     if (!c.PerThread.TryGetValue(thread.CpuSetId, out var usage)) continue;
+                    var share = split is not null && thread.Processor is { } p && p < split.Length ? split[p] : null;
                     thread.Usage = usage;
+                    thread.GameUsage = share is { } s ? Math.Min(s.GamePercent, usage) : 0;
                     thread.Text = $"{usage:0}";
+                    thread.Hint = share is { } sh
+                        ? $"Uso desta thread: {usage:0}%. Do jogo: {sh.GamePercent:0}%; outros programas: {sh.OtherPercent:0}%."
+                        : $"Uso desta thread: {usage:0}%.";
                 }
             }
 

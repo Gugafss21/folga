@@ -168,14 +168,19 @@
             <DockPanel Margin="0,28,0,10">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource AccentBrush}" />
-                    <TextBlock Text="jogo" Style="{StaticResource Text.Label}" Margin="6,0,16,0" />
+                    <TextBlock Text="jogo" Style="{StaticResource Text.Label}" Margin="6,0,16,0"
+                               ToolTip="Parte da barra que é do jogo, medida agora pela amostragem de CPU do Windows (precisa do Folga como administrador e de um jogo aberto)." />
                     <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource TextTertiaryBrush}" />
-                    <TextBlock Text="fundo" Style="{StaticResource Text.Label}" Margin="6,0,0,0" />
+                    <TextBlock Text="outros programas" Style="{StaticResource Text.Label}" Margin="6,0,0,0"
+                               ToolTip="Parte da barra usada por qualquer outro programa (navegador, Discord, o próprio Windows)." />
                 </StackPanel>
                 <TextBlock Text="Núcleos" Style="{StaticResource Text.Section}"
-                           ToolTip="Mapa da sua CPU: cada quadro é um núcleo físico e cada barra é uma thread, com o uso em %. Âmbar é onde o jogo roda; cinza é onde os apps de fundo ficam durante o jogo." />
+                           ToolTip="Mapa da sua CPU: cada quadro é um núcleo físico e cada barra é uma thread, com o uso em % medido agora. Com um jogo aberto, a parte âmbar da barra é o jogo e a cinza são os outros programas. O rótulo do quadro diz o que pode rodar ali: jogo (escolhido na tela Jogos) e fundo (regras de Segundo plano)." />
             </DockPanel>
-            <TextBlock Text="{Binding CoreLegend}" Style="{StaticResource Text.Body}" Margin="0,0,0,12" />
+            <TextBlock Text="{Binding CoreLegend}" Style="{StaticResource Text.Body}" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding CoreSplitNote}" Style="{StaticResource Text.Label}" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,4" TextWrapping="Wrap"
+                       Visibility="{Binding CoreSplitNote, Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}" />
+            <Rectangle Height="8" />
 
             <ItemsControl ItemsSource="{Binding Cores}">
                 <ItemsControl.ItemsPanel>
@@ -186,7 +191,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:CoreTileViewModel}">
                         <Border x:Name="Tile" Style="{StaticResource Panel}" Margin="0,0,8,8" Padding="12,10"
-                                ToolTip="Cada barra é uma thread deste núcleo e mostra o uso em %. Borda âmbar: núcleo em uso pelo jogo na sessão atual. Os núcleos marcados como fundo são definidos nas regras de Segundo plano.">
+                                ToolTip="Cada barra é uma thread deste núcleo, com o uso em % (passe o mouse na barra para ver quanto é do jogo). Borda âmbar: o jogo pode rodar neste núcleo agora, lido do Windows. Fundo: as regras de Segundo plano põem os apps de fundo aqui durante o jogo.">
                             <StackPanel>
                                 <DockPanel>
                                     <TextBlock x:Name="RoleText" DockPanel.Dock="Right" Text="{Binding Role}" Style="{StaticResource Text.Label}" />
@@ -200,15 +205,22 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:ThreadBarViewModel}">
-                                            <StackPanel Margin="0,0,6,0">
-                                                <!-- Barra vertical de uso; altura = uso %. -->
+                                            <StackPanel Margin="0,0,6,0" ToolTip="{Binding Hint}" Background="Transparent">
+                                                <!-- Barra vertical: altura total = uso da thread; parte âmbar embaixo = o jogo. -->
                                                 <Grid Height="56">
                                                     <Border Background="{StaticResource BackgroundBrush}" CornerRadius="3" />
-                                                    <Border x:Name="Bar" VerticalAlignment="Bottom" CornerRadius="3"
-                                                            Background="{Binding DataContext.IsBackground, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=1}, Converter={x:Static vm:CoreBrushConverter.Instance}}">
+                                                    <Border VerticalAlignment="Bottom" CornerRadius="3" Background="{StaticResource TextTertiaryBrush}">
                                                         <Border.Height>
                                                             <MultiBinding Converter="{x:Static vm:PercentToHeightConverter.Instance}">
                                                                 <Binding Path="Usage" />
+                                                                <Binding Source="56" />
+                                                            </MultiBinding>
+                                                        </Border.Height>
+                                                    </Border>
+                                                    <Border VerticalAlignment="Bottom" CornerRadius="3" Background="{StaticResource AccentBrush}">
+                                                        <Border.Height>
+                                                            <MultiBinding Converter="{x:Static vm:PercentToHeightConverter.Instance}" ConverterParameter="0">
+                                                                <Binding Path="GameUsage" />
                                                                 <Binding Source="56" />
                                                             </MultiBinding>
                                                         </Border.Height>

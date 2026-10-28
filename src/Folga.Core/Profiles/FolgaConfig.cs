@@ -21,6 +21,8 @@ public enum GameCores
     All,
     /// <summary>O jogo fica só com os núcleos que não foram dados ao fundo.</summary>
     ExcludeBackground,
+    /// <summary>O jogo fica só nos núcleos escolhidos em <see cref="GameProfile.CustomCores"/>.</summary>
+    Custom,
 }
 
 public sealed class GameProfile
@@ -30,6 +32,9 @@ public sealed class GameProfile
     public bool Enabled { get; set; } = true;
     public PriorityLevel Priority { get; set; } = PriorityLevel.High;
     public GameCores Cores { get; set; } = GameCores.All;
+
+    /// <summary>Núcleos físicos (0 = o primeiro) onde o jogo pode rodar, com <see cref="GameCores.Custom"/>.</summary>
+    public List<int> CustomCores { get; set; } = [];
 
     /// <summary>Se o anti-cheat negar acesso, grava a prioridade no IFEO (vale na próxima abertura).</summary>
     public bool UseIfeoFallback { get; set; } = true;

@@ -33,6 +33,7 @@ public sealed partial class GameRowViewModel : ObservableObject
     public bool AutoDetected { get; init; }
     public string Origin => AutoDetected ? "Detectado" : "Manual";
     public List<string> SkipRules { get; set; } = [];
+    public List<int> CustomCores { get; set; } = [];
     public bool HoldsBackground => HoldBackground != OverrideChoice.Off;
 
     partial void OnHoldBackgroundChanged(OverrideChoice value) => OnPropertyChanged(nameof(HoldsBackground));
@@ -42,7 +43,7 @@ public sealed partial class GameRowViewModel : ObservableObject
         Enabled = p.Enabled, Name = p.Name, ExecutablesText = string.Join(", ", p.Executables),
         Priority = p.Priority, Cores = p.Cores, UseIfeoFallback = p.UseIfeoFallback, MarkDscp = p.MarkDscp,
         AutoDetected = p.AutoDetected,
-        HoldBackground = Choices.ToChoice(p.HoldBackground), SkipRules = [.. p.SkipRules],
+        HoldBackground = Choices.ToChoice(p.HoldBackground), SkipRules = [.. p.SkipRules], CustomCores = [.. p.CustomCores],
         PowerScheme = p.PowerScheme ?? DefaultScheme,
         Overlay = Choices.ToChoice(p.Overlay), PauseWindowsUpdate = Choices.ToChoice(p.PauseWindowsUpdate), PurgeStandby = Choices.ToChoice(p.PurgeStandby),
     };
@@ -52,7 +53,7 @@ public sealed partial class GameRowViewModel : ObservableObject
         Enabled = Enabled, Name = Name.Trim(), Executables = SplitList(ExecutablesText),
         Priority = Priority, Cores = Cores, UseIfeoFallback = UseIfeoFallback, MarkDscp = MarkDscp,
         AutoDetected = AutoDetected,
-        HoldBackground = Choices.FromChoice(HoldBackground), SkipRules = [.. SkipRules],
+        HoldBackground = Choices.FromChoice(HoldBackground), SkipRules = [.. SkipRules], CustomCores = Cores == GameCores.Custom ? [.. CustomCores] : [],
         PowerScheme = PowerScheme == DefaultScheme ? null : PowerScheme,
         Overlay = Choices.FromChoice(Overlay), PauseWindowsUpdate = Choices.FromChoice(PauseWindowsUpdate), PurgeStandby = Choices.FromChoice(PurgeStandby),
     };
@@ -67,6 +68,15 @@ public sealed partial class RuleToggle(string name, bool applies, Action<string,
     public string Name { get; } = name;
     [ObservableProperty] private bool _applies = applies;
     partial void OnAppliesChanged(bool value) => changed(Name, value);
+}
+
+/// <summary>Um núcleo no painel do jogo: marcado = o jogo pode rodar nele.</summary>
+public sealed partial class CoreToggle(int index, bool allowed, Action<CoreToggle> changed) : ObservableObject
+{
+    public int Index { get; } = index;
+    public string Name => $"Núcleo {Index + 1}";
+    [ObservableProperty] private bool _allowed = allowed;
+    partial void OnAllowedChanged(bool value) => changed(this);
 }
 
 public sealed record RunningProcess(int Pid, string ExeName, string Title, string? Path)
@@ -97,9 +107,59 @@ public sealed partial class JogosViewModel : ObservableObject
     /// <summary>Regras de segundo plano do jogo selecionado, marcadas as que valem com ele.</summary>
     public ObservableCollection<RuleToggle> SelectedRules { get; } = [];
 
+    /// <summary>Núcleos do jogo selecionado: os marcados são onde ele pode rodar.</summary>
+    public ObservableCollection<CoreToggle> SelectedCores { get; } = [];
+
+    private bool _syncingCores;
+
     public string SelectedTitle => SelectedRow is { } r ? $"Ajustes de {r.Name}" : "";
 
-    partial void OnSelectedRowChanged(GameRowViewModel? value)
+    partial void OnSelectedRowChanged(GameRowViewModel? oldValue, GameRowViewModel? newValue)
+    {
+        if (oldValue is not null) oldValue.PropertyChanged -= OnRowPropertyChanged;
+        if (newValue is not null) newValue.PropertyChanged += OnRowPropertyChanged;
+        RefreshCores();
+        LoadRules(newValue);
+    }
+
+    private void OnRowPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GameRowViewModel.Cores) && !_syncingCores) RefreshCores();
+    }
+
+    /// <summary>Marca os núcleos que o modo escolhido na tabela dá ao jogo.</summary>
+    private void RefreshCores()
+    {
+        SelectedCores.Clear();
+        if (SelectedRow is not { } row) return;
+        var topology = _services.Engine.Topology;
+        var ids = topology.GameIds(row.Cores, BackgroundCores.Auto, row.CustomCores).ToHashSet();
+        foreach (var core in topology.Cores)
+            SelectedCores.Add(new CoreToggle(core.Index, ids.Count == 0 || core.Ids.Any(ids.Contains), OnCoreToggled));
+    }
+
+    /// <summary>Mexer num núcleo passa o jogo para "Escolhidos"; todos marcados volta para "Todos". Sempre sobra pelo menos um.</summary>
+    private void OnCoreToggled(CoreToggle toggle)
+    {
+        if (SelectedRow is not { } row || _syncingCores) return;
+        _syncingCores = true;
+        try
+        {
+            if (!SelectedCores.Any(c => c.Allowed))
+            {
+                toggle.Allowed = true;
+                Status = "O jogo precisa de pelo menos um núcleo.";
+                return;
+            }
+            var chosen = SelectedCores.Where(c => c.Allowed).Select(c => c.Index).ToList();
+            row.CustomCores = chosen.Count == SelectedCores.Count ? [] : chosen;
+            row.Cores = chosen.Count == SelectedCores.Count ? GameCores.All : GameCores.Custom;
+            Status = "Núcleos do jogo alterados. Salve para valer na próxima vez que o jogo abrir.";
+        }
+        finally { _syncingCores = false; }
+    }
+
+    private void LoadRules(GameRowViewModel? value)
     {
         OnPropertyChanged(nameof(SelectedTitle));
         SelectedRules.Clear();

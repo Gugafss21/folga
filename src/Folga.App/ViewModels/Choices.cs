@@ -35,6 +35,8 @@ public static class Choices
         new(GameCores.All, "Todos", "O jogo pode usar todos os núcleos, inclusive os que o fundo usa (recomendado)."),
         new(GameCores.ExcludeBackground, "Sem os do fundo",
             "O jogo fica só nos núcleos que não foram dados ao fundo. Separa bem, mas o jogo perde parte da CPU: teste jogo a jogo."),
+        new(GameCores.Custom, "Escolhidos",
+            "O jogo fica só nos núcleos marcados no painel do jogo, abaixo da tabela. Menos núcleos = menos CPU para o jogo: use para testar, e compare na tela Sessões."),
     ];
 
     public static IReadOnlyList<Choice<BackgroundCores>> BackgroundCoreModes { get; } =

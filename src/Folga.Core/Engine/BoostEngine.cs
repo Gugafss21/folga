@@ -374,18 +374,29 @@ public sealed class BoostEngine : IDisposable
     private string ApplyGameTweaks(ProcessRef process, GameProfile profile)
     {
         var tweaks = new List<(ChangeKind, long[])> { (ChangeKind.Priority, [PriorityMapping.ToWin32(profile.Priority)]) };
-        var gameIds = Topology.GameIds(profile.Cores, BackgroundCores.Auto);
+        var gameIds = Topology.GameIds(profile.Cores, BackgroundCores.Auto, profile.CustomCores);
         if (gameIds.Count > 0) tweaks.Add((ChangeKind.CpuSets, gameIds.Select(i => (long)i).ToArray()));
 
         var results = Apply(process, tweaks);
+        var cores = !results.TryGetValue(ChangeKind.CpuSets, out var c) ? ""
+            : c == TweakResult.Ok ? $" Núcleos: {CoreList(gameIds)}."
+            : c == TweakResult.AccessDenied ? " Núcleos não aplicados: o anti-cheat negou; o jogo usa todos."
+            : $" Núcleos não aplicados ({c}).";
         var priority = results[ChangeKind.Priority];
         if (priority == TweakResult.Ok)
-            return $"Prioridade {PriorityMapping.Label(profile.Priority)}.";
+            return $"Prioridade {PriorityMapping.Label(profile.Priority)}.{cores}";
 
         if (priority == TweakResult.AccessDenied && profile.UseIfeoFallback)
-            return ApplyIfeo(process.ExeName, profile.Priority);
+            return ApplyIfeo(process.ExeName, profile.Priority) + cores;
 
-        return $"Prioridade não aplicada ({priority}).";
+        return $"Prioridade não aplicada ({priority}).{cores}";
+    }
+
+    /// <summary>"1, 2 e 3": os núcleos físicos (contados a partir de 1) que têm alguma das threads.</summary>
+    private string CoreList(IReadOnlyCollection<uint> ids)
+    {
+        var numbers = Topology.Cores.Where(core => core.Ids.Any(ids.Contains)).Select(core => (core.Index + 1).ToString()).ToList();
+        return numbers.Count <= 1 ? string.Concat(numbers) : $"{string.Join(", ", numbers[..^1])} e {numbers[^1]}";
     }
 
     private string ApplyIfeo(string exe, PriorityLevel level)
