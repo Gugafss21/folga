@@ -105,6 +105,18 @@
         </Setter>
     </Style>
 
+    <!-- ===================== Foco pelo teclado ===================== -->
+    <!-- O WPF mostra o FocusVisualStyle só quando o foco chega pelo teclado (Tab), nunca depois de um clique. -->
+    <Style x:Key="FocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-3" CornerRadius="10" BorderThickness="1.5" BorderBrush="{StaticResource AccentBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===================== Botões ===================== -->
     <Style x:Key="Button.Plain" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -112,7 +124,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="Padding" Value="14,7" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -130,8 +142,8 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Color" To="#2C2C33" Duration="{StaticResource FastDuration}" />
-                                        <ColorAnimation Storyboard.TargetName="Line" Storyboard.TargetProperty="Color" To="#4A4A52" Duration="{StaticResource FastDuration}" />
+                                        <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Color" To="{StaticResource RaisedHoverColor}" Duration="{StaticResource FastDuration}" />
+                                        <ColorAnimation Storyboard.TargetName="Line" Storyboard.TargetProperty="Color" To="{StaticResource LineHoverColor}" Duration="{StaticResource FastDuration}" />
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
@@ -150,9 +162,6 @@
                                     <ScaleTransform ScaleX="0.97" ScaleY="0.97" />
                                 </Setter.Value>
                             </Setter>
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{StaticResource TextDisabledBrush}" />
@@ -217,7 +226,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontSmall}" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -242,7 +251,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Padding" Value="18,10" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
@@ -304,7 +313,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="Padding" Value="10,0,0,0" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -365,9 +374,6 @@
                             </MultiTrigger.Conditions>
                             <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource TextTertiaryBrush}" />
                         </MultiTrigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
-                        </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Root" Property="Opacity" Value="0.45" />
                         </Trigger>
@@ -403,7 +409,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="Padding" Value="9,6" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" /> <!-- o campo já mostra o foco pela borda -->
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
@@ -440,7 +446,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Padding" Value="10,7" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
@@ -467,7 +473,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="Template">
             <Setter.Value>
@@ -641,25 +647,26 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
     </Style>
 
+    <!--
+        Item do menu: duas camadas independentes, uma para a tela atual e outra para o mouse em cima. Cada uma
+        anima só a própria opacidade, então passar o mouse nunca apaga (nem pisca) o destaque da seleção.
+    -->
     <Style x:Key="NavItem" TargetType="ListBoxItem">
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontBody}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
                     <Grid Background="Transparent" Margin="10,1">
-                        <Border CornerRadius="8" Padding="12,8">
-                            <Border.Background>
-                                <SolidColorBrush x:Name="Fill" Color="Transparent" />
-                            </Border.Background>
-                            <ContentPresenter />
-                        </Border>
+                        <Border x:Name="Selected" CornerRadius="8" Background="{StaticResource PanelHoverBrush}" Opacity="0" />
+                        <Border x:Name="Hover" CornerRadius="8" Background="{StaticResource HoverOverlayBrush}" Opacity="0" />
+                        <ContentPresenter Margin="12,8" />
                         <!-- Marcador da tela atual: cresce do meio ao selecionar. -->
                         <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}"
                                 RenderTransformOrigin="0.5,0.5" Opacity="0">
@@ -674,14 +681,14 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="{StaticResource PanelColor}" Duration="{StaticResource FastDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity" To="1" Duration="{StaticResource FastDuration}" />
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
                             <Trigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" Duration="{StaticResource MediumDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity" To="0" Duration="{StaticResource MediumDuration}" />
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -691,7 +698,7 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="{StaticResource PanelHoverColor}" Duration="{StaticResource FastDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="Selected" Storyboard.TargetProperty="Opacity" To="1" Duration="{StaticResource FastDuration}" />
                                         <DoubleAnimation Storyboard.TargetName="Bar" Storyboard.TargetProperty="Opacity" To="1" Duration="{StaticResource FastDuration}" />
                                         <DoubleAnimation Storyboard.TargetName="BarScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="{StaticResource MediumDuration}" EasingFunction="{StaticResource EaseOut}" />
                                     </Storyboard>
@@ -700,9 +707,9 @@
                             <Trigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" Duration="{StaticResource MediumDuration}" />
-                                        <DoubleAnimation Storyboard.TargetName="Bar" Storyboard.TargetProperty="Opacity" Duration="{StaticResource FastDuration}" />
-                                        <DoubleAnimation Storyboard.TargetName="BarScale" Storyboard.TargetProperty="ScaleY" Duration="{StaticResource FastDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="Selected" Storyboard.TargetProperty="Opacity" To="0" Duration="{StaticResource MediumDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="Bar" Storyboard.TargetProperty="Opacity" To="0" Duration="{StaticResource FastDuration}" />
+                                        <DoubleAnimation Storyboard.TargetName="BarScale" Storyboard.TargetProperty="ScaleY" To="0.2" Duration="{StaticResource FastDuration}" />
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -799,7 +806,7 @@
 
     <Style x:Key="TableRow" TargetType="DataGridRow">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource PanelHoverBrush}" />
@@ -836,7 +843,7 @@
                 <!-- Conteúdo centrado na vertical em todas as colunas (texto, caixa de seleção e template). -->
                 <Style TargetType="DataGridCell">
                     <Setter Property="ToolTip" Value="{Binding Column.(v:Hint.Text), RelativeSource={RelativeSource Self}}" />
-                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="DataGridCell">

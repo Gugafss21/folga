@@ -8,7 +8,8 @@ O Folga é escuro, calmo e direto: a cor aparece só onde importa. Tema próprio
 | --- | --- |
 | `BackgroundBrush` / `SidebarBrush` | Fundo da tela / do menu lateral. |
 | `PanelBrush` + `LineBrush` | Cartões (estilo `Panel`: canto 10, linha de 1 px). |
-| `RaisedBrush` / `LineStrongBrush` | Campos, listas suspensas, botões comuns, dicas e menus. |
+| `RaisedBrush` / `LineStrongBrush` | Campos, listas suspensas, botões comuns, dicas e menus (sob o mouse: `RaisedHoverColor` / `LineHoverColor`). |
+| `HoverOverlayBrush` | Véu claro por cima do que está sob o mouse, sobre qualquer fundo. |
 | `TextPrimaryBrush` / `TextSecondaryBrush` / `TextTertiaryBrush` | Valor e título / texto corrido / rótulo e legenda. |
 | `AccentBrush` (âmbar `#F2B13D`) | A marca: ação principal, item selecionado, valor fora do padrão, aviso. Uma ação âmbar por tela. |
 | `OkBrush` | Só "ligado/ativo" (boost, sessão). |
@@ -27,6 +28,8 @@ O Folga é escuro, calmo e direto: a cor aparece só onde importa. Tema próprio
 - `BoostToggle`: o botão grande da tela Agora.
 - Tabelas: `Style="{StaticResource Table}"`. Colunas de caixa de seleção com `ElementStyle="{StaticResource GridCheck}"` e `EditingElementStyle="{StaticResource GridCheckEdit}"`; colunas de texto editáveis com `EditingElementStyle="{StaticResource GridText}"`. A tabela troca o estilo das células, e sem isso elas aparecem brancas.
 - Listas suspensas com explicação por opção: `ChoiceCombo`.
+- Foco: `FocusVisualStyle="{StaticResource FocusRing}"`, que o WPF mostra só quando o foco chega pelo teclado. Destaque de foco por gatilho de `IsKeyboardFocused` fica preso depois de um clique; só campos de texto mostram o foco pela borda.
+- Estados que se sobrepõem (selecionado e mouse em cima) ficam em camadas separadas, cada uma animando a própria opacidade. Duas animações na mesma cor brigam e piscam.
 - Ícones: fonte `IconFont` (Segoe Fluent Icons, com Segoe MDL2 de reserva), pelo código do caractere (`` no C#, `&#xE7FC;` no XAML). Confira o desenho num harness ([testes.md](testes.md)): código errado vira quadrado.
 - Marca: bola preta com o F amarelo (`Assets/Folga.ico`, 16 a 256 px). No menu, a mesma bola desenhada em vetor.
 

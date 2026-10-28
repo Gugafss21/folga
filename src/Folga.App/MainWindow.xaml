@@ -12,7 +12,7 @@
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
         FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontBody}"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+        UseLayoutRounding="True">
     <Window.Resources>
         <!-- Telas agrupadas no menu: Jogo, Ajustes, Seu PC (na ordem em que aparecem em Pages). -->
         <CollectionViewSource x:Key="GroupedPages" Source="{Binding Pages}">
@@ -37,8 +37,8 @@
                         <Grid.RenderTransform>
                             <ScaleTransform x:Name="LogoFlip" />
                         </Grid.RenderTransform>
-                        <Ellipse Fill="#0B0B0C" Stroke="{StaticResource LineStrongBrush}" StrokeThickness="1" />
-                        <TextBlock Text="F" FontFamily="Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                        <Ellipse Fill="{StaticResource LogoBrush}" Stroke="{StaticResource LineStrongBrush}" StrokeThickness="1" />
+                        <TextBlock Text="F" FontFamily="Segoe UI" FontWeight="Bold" FontSize="{StaticResource FontTitle}" Foreground="{StaticResource AccentBrush}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,1" />
                     </Grid>
                     <TextBlock Text="Folga" Style="{StaticResource Text.Title}" VerticalAlignment="Center" Margin="11,0,0,0" />

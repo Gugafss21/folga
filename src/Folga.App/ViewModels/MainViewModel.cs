@@ -78,15 +78,22 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _windowVisible;
 
     partial void OnSelectedPageChanged(NavPage value) => UpdateVisibility();
+
+    /// <summary>A lista do menu nunca fica sem tela: um null (lista sendo desmontada) volta para a anterior.</summary>
+    partial void OnSelectedPageChanging(NavPage? oldValue, NavPage newValue)
+    {
+        if (newValue is null && oldValue is not null) Application.Current?.Dispatcher.BeginInvoke(() => SelectedPage ??= oldValue);
+    }
     partial void OnWindowVisibleChanged(bool value) => UpdateVisibility();
 
     private void UpdateVisibility()
     {
-        Agora.IsVisible = WindowVisible && SelectedPage.ViewModel == Agora;
-        SegundoPlano.IsVisible = WindowVisible && SelectedPage.ViewModel == SegundoPlano;
-        Rede.IsVisible = WindowVisible && SelectedPage.ViewModel == Rede;
-        Hardware.IsVisible = WindowVisible && SelectedPage.ViewModel == Hardware;
-        Limpeza.IsVisible = WindowVisible && SelectedPage.ViewModel == Limpeza;
+        var page = SelectedPage?.ViewModel;
+        Agora.IsVisible = WindowVisible && page == Agora;
+        SegundoPlano.IsVisible = WindowVisible && page == SegundoPlano;
+        Rede.IsVisible = WindowVisible && page == Rede;
+        Hardware.IsVisible = WindowVisible && page == Hardware;
+        Limpeza.IsVisible = WindowVisible && page == Limpeza;
     }
 
     [RelayCommand]

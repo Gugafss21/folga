@@ -205,8 +205,10 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Depois de fechar a janela, devolve ao Windows a memória das telas (uma coleta compactando, alguns segundos
-    /// depois para não pesar no clique). Na bandeja o Folga volta ao tamanho de quando abre minimizado.
+    /// Depois de fechar a janela, pede uma coleta para devolver a memória das telas, alguns segundos depois para
+    /// não pesar no clique. Coleta em segundo plano, sem parar o Folga: a janela costuma fechar logo antes de uma
+    /// partida. Medido: ~190 MB aberta, ~170 MB fechada; o que sobra acima dos ~127 MB de quando o Folga abre
+    /// direto na bandeja é do próprio WPF (estrutura de desenho), que não sai sem fechar o processo.
     /// </summary>
     private void ReleaseWindowMemory()
     {
@@ -215,8 +217,7 @@ public partial class App : Application
         {
             timer.Stop();
             if (_window is not null) return; // abriu de novo nesse meio-tempo
-            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false);
         };
         timer.Start();
     }
@@ -231,9 +232,9 @@ public partial class App : Application
         if (_window is null)
         {
             _window = new MainWindow { DataContext = _viewModel };
+            MainWindow = _window; // quem procura a janela do app (ex.: o aviso de reiniciar) acha a atual
             _window.Closed += (_, _) =>
             {
-                _window.DataContext = null;
                 _window = null;
                 ReleaseWindowMemory();
             };
