@@ -21,7 +21,7 @@ public sealed class SessionRecord
     public double? PingAverageMs { get; set; }
     public int? PingMaxMs { get; set; }
     public double? GpuAveragePercent { get; set; }
-    /// <summary>Diagnóstico das travadas (null em partidas medidas antes da v0.9 ou sem leitura do PC).</summary>
+    /// <summary>Diagnóstico das travadas (null em partidas medidas antes do diagnóstico existir ou sem leitura do PC).</summary>
     public List<HitchFactor>? HitchFactors { get; set; }
 
     public double Minutes => (End - Start).TotalMinutes;
