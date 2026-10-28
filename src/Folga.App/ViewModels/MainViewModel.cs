@@ -61,7 +61,7 @@ public sealed partial class MainViewModel : ObservableObject
     public SistemaViewModel Sistema { get; }
     public IReadOnlyList<NavPage> Pages { get; }
 
-    public string Version { get; } = "v" + typeof(MainViewModel).Assembly.GetName().Version?.ToString(2);
+    public string Version { get; } = "v" + typeof(MainViewModel).Assembly.GetName().Version?.ToString(3);
 
     [ObservableProperty]
     private NavPage _selectedPage;
