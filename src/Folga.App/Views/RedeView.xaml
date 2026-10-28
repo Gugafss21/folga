@@ -19,7 +19,7 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Rede" Style="{StaticResource Text.Headline}" />
             <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
-                       Text="A velocidade da internet é decidida pelo provedor e pelo roteador. O que faz o ping subir no jogo quase sempre é outro app usando o upload ou baixando muito ao mesmo tempo. Aqui você vê quem está usando a rede agora." />
+                       Text="O ping sobe quando outro app usa a internet junto com o jogo, quase sempre enviando dados ou baixando muito. Aqui você vê quem está usando a rede agora e o que o Folga segura." />
         </StackPanel>
 
         <!-- Quem usa a rede agora -->
@@ -39,13 +39,13 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Processos" Binding="{Binding Processes}" Width="*"
+                    <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Processos" Binding="{Binding Processes}" Width="*"
                                         v:Hint.Text="Quantos processos do app usaram a rede no último segundo (o navegador usa um por aba)." />
-                    <DataGridTextColumn Header="Download" Binding="{Binding Download}" Width="*"
+                    <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Download" Binding="{Binding Download}" Width="*"
                                         v:Hint.Text="Dados recebidos por segundo. O Folga não limita download: isso exigiria um driver de rede, arriscado com anti-cheat e antivírus." />
-                    <DataGridTextColumn Header="Upload" Binding="{Binding Upload}" Width="*"
+                    <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Upload" Binding="{Binding Upload}" Width="*"
                                         v:Hint.Text="Dados enviados por segundo. Upload alto em outro app é a causa mais comum de ping alto no jogo." />
-                    <DataGridTextColumn Header="Limite no jogo" Binding="{Binding Limit}" Width="*"
+                    <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Limite no jogo" Binding="{Binding Limit}" Width="*"
                                         v:Hint.Text="Limite de upload que o app recebe enquanto um jogo está aberto. Configure na coluna Upload da tela Segundo plano." />
                 </DataGrid.Columns>
             </DataGrid>
@@ -61,7 +61,7 @@
             <StackPanel>
                 <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Text.Body}" Margin="0,0,0,10" />
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+                    <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Primary}" Command="{Binding SaveCommand}"
                             ToolTip="Grava a opção e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica." />
                     <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="0,0,12,0" />
                     <CheckBox IsChecked="{Binding PauseWindowsUpdate}" VerticalAlignment="Center"

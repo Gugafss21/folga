@@ -23,12 +23,12 @@
         </DockPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
             <StackPanel Margin="0,0,16,0">
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock Text="Sessões" Style="{StaticResource Text.Headline}" />
                     <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
-                               Text="Cada partida medida fica guardada aqui. Compare partidas com boost e sem boost para ver o que o Folga muda de verdade no seu PC: o que importa é o 1% low e as travadas, não o FPS médio." />
+                               Text="Cada partida medida fica aqui. Compare com boost e sem boost para ver o que o Folga muda de verdade: o que mais importa são as travadas e o 1% low." />
                 </StackPanel>
 
                 <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,16">
@@ -193,25 +193,25 @@
                 <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" IsReadOnly="True"
                           v:Wheel.PassToPage="True" MinHeight="120">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Quando" Binding="{Binding When}" Width="96"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Quando" Binding="{Binding When}" Width="96"
                                             v:Hint.Text="Dia e hora em que a partida começou." />
-                        <DataGridTextColumn Header="Jogo" Binding="{Binding Game}" Width="1.4*"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Jogo" Binding="{Binding Game}" Width="1.4*"
                                             v:Hint.Text="Nome do jogo, como está na tela Jogos." />
-                        <DataGridTextColumn Header="Modo" Binding="{Binding Mode}" Width="96"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Modo" Binding="{Binding Mode}" Width="96"
                                             v:Hint.Text="Com boost: o Folga aplicou tudo. Sem boost: jogada com Só medir ligado, nada foi alterado." />
-                        <DataGridTextColumn Header="Duração" Binding="{Binding Duration}" Width="90"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Duração" Binding="{Binding Duration}" Width="90"
                                             v:Hint.Text="Quanto tempo o jogo ficou aberto nessa partida." />
-                        <DataGridTextColumn Header="FPS" Binding="{Binding Fps}" Width="60"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="FPS" Binding="{Binding Fps}" Width="60"
                                             v:Hint.Text="FPS médio da partida inteira." />
-                        <DataGridTextColumn Header="1% low" Binding="{Binding Low}" Width="70"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="1% low" Binding="{Binding Low}" Width="70"
                                             v:Hint.Text="FPS dos 1% piores quadros da partida inteira." />
-                        <DataGridTextColumn Header="0,1% low" Binding="{Binding PointOneLow}" Width="76"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="0,1% low" Binding="{Binding PointOneLow}" Width="76"
                                             v:Hint.Text="FPS dos 0,1% piores quadros da partida inteira." />
-                        <DataGridTextColumn Header="Travadas/min" Binding="{Binding Hitches}" Width="116"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Travadas/min" Binding="{Binding Hitches}" Width="116"
                                             v:Hint.Text="Quadros acima de 50 ms por minuto de jogo." />
-                        <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" Width="60"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Ping" Binding="{Binding Ping}" Width="60"
                                             v:Hint.Text="Ping médio até o servidor, em ms (vazio se o servidor não responde a ping)." />
-                        <DataGridTextColumn Header="GPU" Binding="{Binding Gpu}" Width="60"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="GPU" Binding="{Binding Gpu}" Width="60"
                                             v:Hint.Text="Uso médio da placa de vídeo. Perto de 99%: a placa é o limite, e o Folga pouco muda o FPS médio." />
                     </DataGrid.Columns>
                 </DataGrid>

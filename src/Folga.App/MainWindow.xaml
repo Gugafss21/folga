@@ -6,68 +6,111 @@
         xmlns:vm="clr-namespace:Folga.App.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="Folga" Width="1120" Height="760" MinWidth="900" MinHeight="600"
+        Title="Folga" Width="1160" Height="780" MinWidth="940" MinHeight="620"
+        Icon="Assets/Folga.ico"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
-        FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontBody}">
+        FontFamily="{StaticResource UiFont}" FontSize="{StaticResource FontBody}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <!-- Telas agrupadas no menu: Jogo, Ajustes, Seu PC (na ordem em que aparecem em Pages). -->
+        <CollectionViewSource x:Key="GroupedPages" Source="{Binding Pages}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Group" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </Window.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="208" />
-            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="224" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Menu lateral -->
-        <DockPanel Grid.Column="0">
-            <StackPanel DockPanel.Dock="Top" Margin="20,20,20,20" Orientation="Horizontal">
-                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,2,10,0" />
-                <TextBlock Text="Folga" Style="{StaticResource Text.Title}" />
-            </StackPanel>
-            <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,16">
-                <StackPanel Orientation="Horizontal" Margin="8,0,0,12"
-                            ToolTip="Estado do boost agora. Verde com o nome do jogo: sessão ativa, o jogo tem prioridade e os apps de fundo estão segurados. Cinza: esperando um jogo da lista (ou detectado em tela cheia), ou boost desligado no botão da tela Agora.">
-                    <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,8,0">
-                        <Ellipse.Style>
-                            <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="{StaticResource TextTertiaryBrush}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding BoostKind}" Value="Active">
-                                        <Setter Property="Fill" Value="{StaticResource OkBrush}" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding BoostKind}" Value="Off">
-                                        <Setter Property="Fill" Value="{StaticResource LineBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
-                    </Ellipse>
-                    <TextBlock Text="{Binding BoostStatus}" Style="{StaticResource Text.Label}" Foreground="{StaticResource TextSecondaryBrush}"
-                               TextTrimming="CharacterEllipsis" MaxWidth="160" />
+        <!-- ===== Menu lateral ===== -->
+        <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <!-- Marca: a mesma bola do ícone, desenhada em vetor. -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="22,22,20,22">
+                    <Grid x:Name="Logo" Width="30" Height="30" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="LogoFlip" />
+                        </Grid.RenderTransform>
+                        <Ellipse Fill="#0B0B0C" Stroke="{StaticResource LineStrongBrush}" StrokeThickness="1" />
+                        <TextBlock Text="F" FontFamily="Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,1" />
+                    </Grid>
+                    <TextBlock Text="Folga" Style="{StaticResource Text.Title}" VerticalAlignment="Center" Margin="11,0,0,0" />
                 </StackPanel>
-                <Button Content="Restaurar tudo" Style="{StaticResource Button.Link}" HorizontalAlignment="Left"
-                        Command="{Binding RestoreAllCommand}"
-                        ToolTip="Botão de emergência: desfaz tudo o que o Folga mudou (prioridades, núcleos, memória e a prioridade gravada no registro para jogos com anti-cheat) e desliga o boost. Pede confirmação antes." />
-                <TextBlock Text="{Binding Version}" Style="{StaticResource Text.Label}" Margin="8,4,0,0" />
-            </StackPanel>
-            <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
-                     Background="Transparent" BorderThickness="0">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource NavItem}">
-                        <Setter Property="ToolTip" Value="{Binding Hint}" />
-                        <Setter Property="ToolTipService.Placement" Value="Right" />
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Title}" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
 
-        <Rectangle Grid.Column="1" Width="1" Fill="{StaticResource LineBrush}" />
+                <!-- Rodapé: estado do boost, botão de emergência e versão. -->
+                <StackPanel DockPanel.Dock="Bottom" Margin="20,0,16,18">
+                    <Border CornerRadius="8" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Padding="12,9" Margin="0,0,0,10"
+                            ToolTip="Estado do boost agora. Verde com o nome do jogo: o jogo tem prioridade e os apps de fundo estão segurados. Cinza: esperando um jogo da lista (ou um em tela cheia), ou boost desligado na tela Agora.">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,9,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource TextTertiaryBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BoostKind}" Value="Active">
+                                                <Setter Property="Fill" Value="{StaticResource OkBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding BoostKind}" Value="Off">
+                                                <Setter Property="Fill" Value="{StaticResource LineStrongBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding BoostStatus}" Style="{StaticResource Text.Label}" Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                        </StackPanel>
+                    </Border>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Version}" Style="{StaticResource Text.Label}" VerticalAlignment="Center"
+                                   ToolTip="Versão do Folga instalada. Atualizações em Sistema." />
+                        <Button Content="Restaurar tudo" Style="{StaticResource Button.Link}" HorizontalAlignment="Left" Margin="-8,0,0,0"
+                                Command="{Binding RestoreAllCommand}"
+                                ToolTip="Botão de emergência: desfaz tudo o que o Folga mudou (prioridades, núcleos, memória e a prioridade gravada no registro para jogos com anti-cheat) e desliga o boost. Pede confirmação antes." />
+                    </DockPanel>
+                </StackPanel>
 
-        <ContentControl Grid.Column="2" Content="{Binding SelectedPage.ViewModel}" Margin="28,24,28,20" Focusable="False" />
+                <ListBox ItemsSource="{Binding Source={StaticResource GroupedPages}}" SelectedItem="{Binding SelectedPage}">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Text.Label}" FontWeight="SemiBold" Margin="24,14,0,6" />
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource NavItem}">
+                            <Setter Property="ToolTip" Value="{Binding Hint}" />
+                            <Setter Property="ToolTipService.Placement" Value="Right" />
+                            <Setter Property="ToolTipService.InitialShowDelay" Value="700" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NavPage}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Icon}" Style="{StaticResource Text.Icon}" FontSize="15" Width="20" Margin="0,0,12,0" />
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ===== Tela atual (entra com um fade curto ao trocar) ===== -->
+        <ContentControl x:Name="PageHost" Grid.Column="1" Content="{Binding SelectedPage.ViewModel}" Margin="32,26,32,22" Focusable="False">
+            <ContentControl.RenderTransform>
+                <TranslateTransform x:Name="PageShift" />
+            </ContentControl.RenderTransform>
+        </ContentControl>
     </Grid>
 </Window>

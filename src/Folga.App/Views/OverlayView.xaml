@@ -25,18 +25,18 @@
 
     <DockPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Primary}" Command="{Binding SaveCommand}"
                     ToolTip="Grava e aplica no próximo segundo, sem desfazer nada do jogo aberto." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
         </DockPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
             <StackPanel Margin="0,0,16,0">
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock Text="Overlay" Style="{StaticResource Text.Headline}" />
                     <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Text="Os números do jogo por cima do jogo. Quem desenha é o RTSS (RivaTuner Statistics Server), que precisa estar aberto; o Folga só escreve o texto na memória dele, nada é injetado pelo Folga." />
+                               Text="FPS, ping e outros números desenhados por cima do jogo. Quem desenha é o RTSS (RivaTuner), que precisa estar aberto; o Folga só manda o texto, sem mexer no jogo." />
                 </StackPanel>
 
                 <!-- RTSS -->
@@ -141,13 +141,13 @@
                 <DataGrid Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
                           v:Wheel.PassToPage="True">
                     <DataGrid.Columns>
-                        <DataGridCheckBoxColumn Header="Mostrar" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="76"
+                        <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" EditingElementStyle="{StaticResource GridCheckEdit}" Header="Mostrar" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="76"
                                                 v:Hint.Text="Marcado: o número aparece no overlay." />
                         <DataGridTextColumn Header="Número" Binding="{Binding Name, Mode=OneWay}" IsReadOnly="True" Width="1.4*"
                                             v:Hint.Text="O que é medido. FPS, 1% low, frametime e ping precisam do Folga como administrador e de um jogo aberto." />
-                        <DataGridTextColumn Header="Rótulo" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Rótulo" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"
                                             v:Hint.Text="Texto antes do número no jogo. Deixe vazio para mostrar só o número. Dê dois cliques para editar." />
-                        <DataGridTextColumn Header="Alerta" Binding="{Binding WarnText, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                        <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Alerta" Binding="{Binding WarnText, UpdateSourceTrigger=PropertyChanged}" Width="90"
                                             v:Hint.Text="Limite para o número ficar na cor de alerta. Vazio = sem alerta. Para FPS, 1% low e RAM livre o alerta é abaixo do limite; para o resto, acima." />
                         <DataGridTextColumn Header="Quando" Binding="{Binding WarnUnit, Mode=OneWay}" IsReadOnly="True" Width="1.2*"
                                             v:Hint.Text="Em que sentido e unidade o limite de alerta é comparado." />

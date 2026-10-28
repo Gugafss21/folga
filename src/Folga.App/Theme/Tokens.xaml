@@ -1,40 +1,65 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
-    <!-- Tokens da taste-skill: escuro neutro, cor só nos dados. -->
-    <Color x:Key="BackgroundColor">#111111</Color>
-    <Color x:Key="PanelColor">#171717</Color>
-    <Color x:Key="PanelHoverColor">#1E1E1E</Color>
-    <Color x:Key="LineColor">#2E2E2E</Color>
-    <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
-    <Color x:Key="TextSecondaryColor">#B4B4B4</Color>
-    <Color x:Key="TextTertiaryColor">#949494</Color>
-    <Color x:Key="AccentColor">#E8A33D</Color>
-    <Color x:Key="AccentDimColor">#3A2A12</Color>
+    <!--
+        Tema próprio, escuro e neutro: a cor fica para o que importa (âmbar = Folga/destaque, verde = ativo).
+        Sem o tema Fluent do WPF: só os estilos que o app usa, mais leves de carregar.
+    -->
+    <Color x:Key="BackgroundColor">#0E0E10</Color>
+    <Color x:Key="SidebarColor">#121214</Color>
+    <Color x:Key="PanelColor">#17171A</Color>
+    <Color x:Key="PanelHoverColor">#1F1F23</Color>
+    <Color x:Key="RaisedColor">#232328</Color>
+    <Color x:Key="LineColor">#27272C</Color>
+    <Color x:Key="LineStrongColor">#3A3A41</Color>
+    <Color x:Key="TextPrimaryColor">#F4F4F5</Color>
+    <Color x:Key="TextSecondaryColor">#B6B6BD</Color>
+    <Color x:Key="TextTertiaryColor">#85858F</Color>
+    <Color x:Key="TextDisabledColor">#5A5A62</Color>
+    <Color x:Key="AccentColor">#F2B13D</Color>
+    <Color x:Key="AccentHoverColor">#FFC35A</Color>
+    <Color x:Key="AccentPressedColor">#D9982A</Color>
+    <Color x:Key="AccentDimColor">#2B2213</Color>
+    <Color x:Key="OnAccentColor">#141414</Color>
     <Color x:Key="OkColor">#3FC07A</Color>
-    <Color x:Key="OkSurfaceColor">#172A1D</Color>
-    <Color x:Key="WarnColor">#E8A33D</Color>
+    <Color x:Key="OkSurfaceColor">#132619</Color>
+    <Color x:Key="DangerColor">#E5605A</Color>
+    <Color x:Key="WarnColor">#F2B13D</Color>
 
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource SidebarColor}" />
     <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}" />
     <SolidColorBrush x:Key="PanelHoverBrush" Color="{StaticResource PanelHoverColor}" />
+    <SolidColorBrush x:Key="RaisedBrush" Color="{StaticResource RaisedColor}" />
     <SolidColorBrush x:Key="LineBrush" Color="{StaticResource LineColor}" />
+    <SolidColorBrush x:Key="LineStrongBrush" Color="{StaticResource LineStrongColor}" />
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
     <SolidColorBrush x:Key="AccentDimBrush" Color="{StaticResource AccentDimColor}" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="{StaticResource OnAccentColor}" />
     <SolidColorBrush x:Key="OkBrush" Color="{StaticResource OkColor}" />
     <SolidColorBrush x:Key="OkSurfaceBrush" Color="{StaticResource OkSurfaceColor}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
 
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+    <!-- Ícones do próprio Windows (11: Fluent; 10: MDL2, mesmos códigos). -->
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-    <!-- Escala curta: 12 / 14 / 18 / 24 (+28 para números grandes). -->
+    <!-- Escala curta: 12 / 14 / 18 / 26 (+30 para números grandes). -->
     <sys:Double x:Key="FontSmall">12</sys:Double>
     <sys:Double x:Key="FontBody">14</sys:Double>
     <sys:Double x:Key="FontTitle">18</sys:Double>
-    <sys:Double x:Key="FontHeadline">24</sys:Double>
-    <sys:Double x:Key="FontNumber">28</sys:Double>
+    <sys:Double x:Key="FontHeadline">26</sys:Double>
+    <sys:Double x:Key="FontNumber">30</sys:Double>
+
+    <!-- Movimento: rápido e curto. Nada fica animando sozinho (custo zero parado). -->
+    <Duration x:Key="FastDuration">0:0:0.12</Duration>
+    <Duration x:Key="MediumDuration">0:0:0.18</Duration>
+    <CubicEase x:Key="EaseOut" EasingMode="EaseOut" />
 </ResourceDictionary>

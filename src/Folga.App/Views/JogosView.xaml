@@ -20,18 +20,18 @@
                     ToolTip="Adiciona uma linha em branco para digitar o nome e o .exe do jogo à mão." />
             <Button DockPanel.Dock="Left" Content="Remover" Style="{StaticResource Button.Plain}" Command="{Binding RemoveCommand}" Margin="8,0,0,0"
                     ToolTip="Tira da lista o jogo selecionado. Só vale depois de Salvar." />
-            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Plain}" Command="{Binding SaveCommand}"
+            <Button DockPanel.Dock="Right" Content="Salvar" Style="{StaticResource Button.Primary}" Command="{Binding SaveCommand}"
                     ToolTip="Grava a lista, os ajustes de cada jogo, a detecção automática e as exclusões, e aplica na hora. Se um jogo estiver aberto, o Folga desfaz e reaplica com as regras novas." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="16,0" />
         </DockPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
             <StackPanel Margin="0,0,16,0">
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock Text="Jogos" Style="{StaticResource Text.Headline}" />
                     <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Text="Quando um destes .exe abre, o Folga dá prioridade a ele e segura os apps de fundo. Aceita * no nome (ex.: PioneerGame*.exe). Jogos fora da lista são achados sozinhos pela detecção automática. Selecione um jogo para ver os ajustes só dele." />
+                               Text="Quando um destes jogos abre, ele ganha prioridade e os apps de fundo são segurados. Jogos em tela cheia entram sozinhos na lista. Clique num jogo para ver os ajustes só dele." />
                 </StackPanel>
 
                 <!-- Detecção automática -->
@@ -67,13 +67,13 @@
                     <DataGrid x:Name="GamesGrid" Style="{StaticResource Table}" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
                               v:Wheel.PassToPage="True" MinHeight="120">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64"
+                            <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" EditingElementStyle="{StaticResource GridCheckEdit}" Header="Ativo" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="64"
                                                     v:Hint.Text="Desmarcado: o perfil fica guardado, mas o Folga ignora o jogo." />
-                            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="2*"
+                            <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Nome" Binding="{Binding Name}" Width="2*"
                                                 v:Hint.Text="Nome que aparece na tela Agora. Só para você identificar; não afeta a detecção." />
                             <DataGridTextColumn Header="Origem" Binding="{Binding Origin, Mode=OneWay}" IsReadOnly="True" Width="96"
                                                 v:Hint.Text="Manual: você adicionou. Detectado: o Folga achou em tela cheia e lembrou. Para o Folga não detectar de novo, remova (vai para as exclusões) ou desmarque Ativo." />
-                            <DataGridTextColumn Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
+                            <DataGridTextColumn EditingElementStyle="{StaticResource GridText}" Header="Executáveis" Binding="{Binding ExecutablesText}" Width="3*"
                                                 v:Hint.Text="Nome do .exe do jogo; vários separados por vírgula. * vale qualquer trecho (PioneerGame*.exe pega PioneerGame-Win64-Shipping.exe). Não diferencia maiúsculas. Dê dois cliques para editar." />
                             <DataGridComboBoxColumn Header="Prioridade" Width="1.4*"
                                                     ItemsSource="{x:Static vm:Choices.GamePriorities}"
@@ -87,9 +87,9 @@
                                                     SelectedValueBinding="{Binding Cores}"
                                                     EditingElementStyle="{StaticResource ChoiceCombo}"
                                                     v:Hint.Text="Quais núcleos o jogo pode usar. Todos é o recomendado; os apps de fundo já são afastados para o último núcleo. Para escolher núcleo a núcleo, marque-os no painel do jogo abaixo da tabela." />
-                            <DataGridCheckBoxColumn Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
+                            <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" EditingElementStyle="{StaticResource GridCheckEdit}" Header="IFEO se negar" Binding="{Binding UseIfeoFallback, UpdateSourceTrigger=PropertyChanged}" Width="110"
                                                     v:Hint.Text="Jogos com anti-cheat (EAC, BattlEye) às vezes bloqueiam a mudança de prioridade. Marcado: o Folga grava a prioridade no registro do Windows (IFEO) e ela vale a partir da próxima vez que o jogo abrir. Nada é injetado no jogo." />
-                            <DataGridCheckBoxColumn Header="DSCP 46" Binding="{Binding MarkDscp, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                            <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" EditingElementStyle="{StaticResource GridCheckEdit}" Header="DSCP 46" Binding="{Binding MarkDscp, UpdateSourceTrigger=PropertyChanged}" Width="80"
                                                     v:Hint.Text="Marca os pacotes do jogo como tráfego prioritário (DSCP 46, o mesmo de chamadas de voz). Só ajuda se o roteador tiver QoS que respeite a marcação; sem isso, não muda nada. Desligado por padrão." />
                         </DataGrid.Columns>
                     </DataGrid>

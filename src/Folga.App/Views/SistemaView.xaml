@@ -19,18 +19,18 @@
 
     <DockPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="Aplicar" Style="{StaticResource Button.Plain}" Command="{Binding ApplyCommand}"
+            <Button DockPanel.Dock="Right" Content="Aplicar" Style="{StaticResource Button.Primary}" Command="{Binding ApplyCommand}"
                     ToolTip="Grava no Windows só o que você mudou nesta tela. Modo de Jogo, otimizações de janela e Game Bar valem na hora (ou ao abrir o jogo de novo); paginação, memória compactada e agendamento de GPU valem depois de reiniciar o PC, e o Folga avisa no topo da tela. O plano de energia vale no próximo jogo." />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </DockPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
             <StackPanel Margin="0,0,16,0">
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock Text="Sistema" Style="{StaticResource Text.Headline}" />
                     <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Text="Ajustes do próprio Windows que mexem no jogo. Ao contrário do boost, eles ficam valendo depois que o jogo fecha; para voltar, é só mudar aqui de novo. Passe o mouse em cada opção para ver o que ela faz e quando ajuda." />
+                               Text="Ajustes do Windows que mexem nos jogos. Eles continuam valendo depois que o jogo fecha; para voltar, é só mudar aqui. Passe o mouse em cada opção para saber o que faz." />
                 </StackPanel>
 
                 <!-- Sem admin -->

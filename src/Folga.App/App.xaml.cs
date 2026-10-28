@@ -19,6 +19,7 @@ public partial class App : Application
     private EventWaitHandle? _showSignal;
     private AppServices? _services;
     private MainWindow? _window;
+    private MainViewModel? _viewModel;
     private TaskbarIcon? _tray;
     private MenuItem? _boostItem;
     private Version? _notifiedVersion;
@@ -87,8 +88,8 @@ public partial class App : Application
         if (Environment.ProcessPath is { } path && AppInstaller.IsInstalledCopy(path))
             AppInstaller.RegisterUninstall(Updater.Current.ToString());
 
-        var viewModel = new MainViewModel(_services);
-        _window = new MainWindow { DataContext = viewModel };
+        // A janela só existe enquanto está aberta: fechada, o Folga fica só na bandeja e devolve a memória dela.
+        var viewModel = _viewModel = new MainViewModel(_services);
         CreateTray(viewModel);
         _services.Engine.StateChanged += () => Dispatcher.BeginInvoke(UpdateTray);
         UpdateTray();
@@ -120,7 +121,6 @@ public partial class App : Application
         var folders = AppInstaller.Uninstall(removeData: answer == MessageBoxResult.Yes);
         MessageBox.Show("O Folga foi desinstalado e tudo o que ele mudou foi desfeito.", "Folga");
         AppInstaller.DeleteAfterExit(folders); // só agora: o aviso acima espera o clique, e o .exe precisa ter fechado
-        if (_window is not null) _window.AllowClose = true;
         Shutdown();
         return true;
     }
@@ -143,7 +143,6 @@ public partial class App : Application
         _singleInstance?.Dispose();
         _singleInstance = null;
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exePath) { UseShellExecute = true });
-        if (_window is not null) _window.AllowClose = true;
         Shutdown();
     }
 
@@ -173,23 +172,13 @@ public partial class App : Application
         open.Click += (_, _) => ShowWindow();
         var restore = new MenuItem { Header = "Restaurar tudo", ToolTip = "Desfaz tudo o que o Folga mudou, inclusive o registro (IFEO), e desliga o boost. Pede confirmação." };
         restore.Click += (_, _) => viewModel.RestoreAllCommand.Execute(null);
-        var exit = new MenuItem { Header = "Sair", ToolTip = "Fecha o Folga. O que estiver aplicado é desfeito antes de sair. Fechar a janela no X só esconde na bandeja." };
-        exit.Click += (_, _) =>
-        {
-            if (_window is not null) _window.AllowClose = true;
-            Shutdown();
-        };
+        var exit = new MenuItem { Header = "Sair", ToolTip = "Fecha o Folga de vez. O que estiver aplicado é desfeito antes de sair. Fechar a janela no X deixa o Folga na bandeja." };
+        exit.Click += (_, _) => Shutdown();
 
         _tray = new TaskbarIcon
         {
             ToolTipText = "Folga",
-            IconSource = new GeneratedIconSource
-            {
-                Text = "F",
-                Foreground = (Brush)FindResource("AccentBrush"),
-                Background = (Brush)FindResource("BackgroundBrush"),
-                FontWeight = FontWeights.Bold,
-            },
+            IconSource = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/Folga.ico")),
             ContextMenu = new ContextMenu { Items = { open, _boostItem, restore, new Separator(), exit } },
             DoubleClickCommand = new RelayCommand(ShowWindow),
         };
@@ -215,13 +204,40 @@ public partial class App : Application
             : "Folga · esperando um jogo";
     }
 
+    /// <summary>
+    /// Depois de fechar a janela, devolve ao Windows a memória das telas (uma coleta compactando, alguns segundos
+    /// depois para não pesar no clique). Na bandeja o Folga volta ao tamanho de quando abre minimizado.
+    /// </summary>
+    private void ReleaseWindowMemory()
+    {
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            if (_window is not null) return; // abriu de novo nesse meio-tempo
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        };
+        timer.Start();
+    }
+
     [System.Runtime.InteropServices.LibraryImport("user32.dll")]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
     private static partial bool AllowSetForegroundWindow(int processId);
 
     private void ShowWindow()
     {
-        if (_window is null) return;
+        if (_viewModel is null) return;
+        if (_window is null)
+        {
+            _window = new MainWindow { DataContext = _viewModel };
+            _window.Closed += (_, _) =>
+            {
+                _window.DataContext = null;
+                _window = null;
+                ReleaseWindowMemory();
+            };
+        }
         _window.Show();
         if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
         _window.Activate();

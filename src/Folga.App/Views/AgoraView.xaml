@@ -19,7 +19,7 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+        <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
         <StackPanel Margin="0,0,16,0">
             <!-- Jogo + botão principal -->
             <Grid>

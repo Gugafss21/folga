@@ -15,12 +15,12 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+        <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
         <StackPanel Margin="0,0,16,0">
             <StackPanel Margin="0,0,0,16">
                 <TextBlock Text="Hardware" Style="{StaticResource Text.Headline}" />
                 <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                           Text="A ficha do seu PC, lida do próprio Windows, sem instalar driver. Na coluna da direita fica o padrão de fábrica quando existe; em âmbar, o que está diferente dele. Clocks, consumo, temperatura e espaço se atualizam sozinhos." />
+                           Text="A ficha do seu PC, lida do Windows sem instalar nada. À direita, o padrão de fábrica; em âmbar, o que está diferente dele. Os números ao vivo se atualizam sozinhos." />
                 <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" Margin="0,6,0,0" />
             </StackPanel>
 

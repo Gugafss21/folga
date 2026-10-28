@@ -8,7 +8,7 @@
              d:DataContext="{d:DesignInstance vm:LimpezaViewModel}">
     <DockPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="Limpar selecionados" Style="{StaticResource Button.Plain}" Command="{Binding CleanCommand}" Margin="8,0,0,0"
+            <Button DockPanel.Dock="Right" Content="Limpar selecionados" Style="{StaticResource Button.Primary}" Command="{Binding CleanCommand}" Margin="8,0,0,0"
                     ToolTip="Apaga o que está marcado, depois de pedir confirmação. Os arquivos não vão para a Lixeira. Arquivos em uso são pulados, e com um jogo aberto nada é apagado." />
             <Button DockPanel.Dock="Right" Content="Analisar de novo" Style="{StaticResource Button.Plain}" Command="{Binding ScanCommand}"
                     ToolTip="Mede de novo quanto cada categoria ocupa agora. Só lê; não apaga nada." />
@@ -17,12 +17,12 @@
         </DockPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <!-- Margem à direita: espaço para a barra de rolagem não encostar no conteúdo. -->
             <StackPanel Margin="0,0,16,0">
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock Text="Limpeza" Style="{StaticResource Text.Headline}" />
                     <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Text="Libera espaço apagando só caches e temporários do Windows e dos drivers. Lixeira, Downloads, Documentos, Área de Trabalho, Imagens e qualquer pasta sua nunca entram, e atalhos de pasta não são seguidos. Arquivos em uso ficam." />
+                               Text="Libera espaço apagando só caches e temporários do Windows e dos drivers. Seus arquivos, a Lixeira e a pasta Downloads nunca entram, e o que está em uso fica." />
                 </StackPanel>
 
                 <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,0,0,12"

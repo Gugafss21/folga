@@ -37,7 +37,8 @@ dotnet publish src/Folga.App -c Release -r win-x64 --self-contained -p:PublishSi
 ## Estrutura
 
 - `src/Folga.Core`: motor sem interface (detecção por ETW, perfis, aplicadores, diário, memória, rede, telemetria).
-- `src/Folga.App`: WPF (telas Agora, Jogos, Segundo plano, Rede; ícone na bandeja).
+- `src/Folga.App`: WPF (telas Agora, Jogos, Sessões, Segundo plano, Rede, Overlay, Sistema, Hardware e Limpeza; ícone na bandeja).
+- `docs/`: documentação para quem mexe no código (arquitetura, interface, segurança, testes, publicação); o índice fica no `CLAUDE.md`.
 - `tests/Folga.Core.Tests`: testes do motor com processos falsos e contra um processo filho real.
 
 ## Licença

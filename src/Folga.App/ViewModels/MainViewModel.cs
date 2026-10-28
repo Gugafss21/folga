@@ -6,7 +6,8 @@ using Folga.Core.Profiles;
 
 namespace Folga.App.ViewModels;
 
-public sealed record NavPage(string Title, ObservableObject ViewModel, string Hint);
+/// <summary>Uma tela no menu lateral. Icon: código do caractere na fonte de ícones do Windows; Group: título do bloco no menu.</summary>
+public sealed record NavPage(string Group, string Icon, string Title, ObservableObject ViewModel, string Hint);
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -26,15 +27,15 @@ public sealed partial class MainViewModel : ObservableObject
         Sistema = new SistemaViewModel(services);
         Pages =
         [
-            new("Agora", Agora, "O jogo detectado, o botão Boost, CPU e RAM ao vivo e o mapa de núcleos."),
-            new("Jogos", Jogos, "Lista de jogos que o Folga reconhece e o que fazer quando cada um abre."),
-            new("Segundo plano", SegundoPlano, "Regras para navegador, Discord e launchers enquanto um jogo está aberto, e o estado real de cada um."),
-            new("Rede", Rede, "Quem está usando download e upload agora, e o que o Folga faz na rede durante o jogo."),
-            new("Overlay", Overlay, "Os números do jogo desenhados por cima do jogo pelo RTSS: o que aparece, nomes, tamanho, cores e canto."),
-            new("Sessões", Sessoes, "Cada partida medida (FPS, 1% low, travadas, ping) e a comparação com boost contra sem boost (modo Só medir), para ver o que o Folga muda no seu PC."),
-            new("Hardware", Hardware, "A ficha do PC lida do Windows: processador, placa-mãe, memória (velocidade, tensão e CL anunciado), placa de vídeo (clocks, energia, PCIe), discos e Windows, com o padrão de fábrica ao lado."),
-            new("Limpeza", Limpeza, "Libera espaço no disco apagando só caches e temporários do Windows e dos drivers, nunca arquivos pessoais."),
-            new("Sistema", Sistema, "Ajustes do próprio Windows: arquivo de paginação, memória compactada, Modo de Jogo, otimizações de janela, capturas do Game Bar, agendamento de GPU e plano de energia durante o jogo. Avisa quando precisa reiniciar."),
+            new("Jogo", "\uEC4A", "Agora", Agora, "O jogo aberto agora, o botão do boost, FPS, CPU, RAM e o uso de cada núcleo."),
+            new("Jogo", "\uE7FC", "Jogos", Jogos, "Os jogos que o Folga reconhece e o que ele faz quando cada um abre."),
+            new("Jogo", "\uE81C", "Sessões", Sessoes, "Cada partida medida, a comparação com boost × sem boost e de onde vêm as travadas."),
+            new("Ajustes", "\uE71D", "Segundo plano", SegundoPlano, "O que acontece com navegador, Discord e launchers enquanto você joga."),
+            new("Ajustes", "\uE839", "Rede", Rede, "Quem está usando a internet agora e o que o Folga segura durante o jogo."),
+            new("Ajustes", "\uE890", "Overlay", Overlay, "Os números desenhados por cima do jogo (pelo RTSS): quais, onde e com que cores."),
+            new("Ajustes", "\uE713", "Sistema", Sistema, "Ajustes do Windows que mexem nos jogos, e a instalação e as atualizações do Folga."),
+            new("Seu PC", "\uE7F4", "Hardware", Hardware, "A ficha do seu PC, com o padrão de fábrica ao lado do que está valendo."),
+            new("Seu PC", "\uE74D", "Limpeza", Limpeza, "Libera espaço apagando só caches e temporários, nunca arquivos seus."),
         ];
         _selectedPage = Pages[0];
         services.Engine.StateChanged += () => Application.Current?.Dispatcher.BeginInvoke(RefreshBoost);
