@@ -112,6 +112,81 @@
                     </Border>
                 </Grid>
 
+                <TextBlock Text="De onde vêm as travadas" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
+                           ToolTip="A cada segundo de jogo o Folga anota o estado do PC (disco lido pelo jogo, memória, placa de vídeo, processador) e quantas travadas houve. No fim, vê em quais situações as travadas se concentram. Junta todas as partidas de cada jogo, com e sem boost." />
+
+                <Grid>
+                    <ItemsControl x:Name="DiagnosesList" ItemsSource="{Binding Diagnoses}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:DiagnosisCard}">
+                                <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Footer}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Game}" Style="{StaticResource Text.Section}" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding Verdict}" Style="{StaticResource Text.Body}" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Advice}" Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                                                   Visibility="{Binding Advice, Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}" />
+                                        <Grid Margin="0,12,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="130" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Situação" Style="{StaticResource Text.Label}" />
+                                            <TextBlock Grid.Column="1" Text="Do tempo" Style="{StaticResource Text.Label}" HorizontalAlignment="Right"
+                                                       ToolTip="Parte do tempo de jogo em que a situação estava acontecendo." />
+                                            <TextBlock Grid.Column="2" Text="Travadas" Style="{StaticResource Text.Label}" HorizontalAlignment="Right"
+                                                       ToolTip="Parte das travadas que aconteceu durante a situação. Bem maior que a parte do tempo: a situação tem a ver com as travadas." />
+                                            <TextBlock Grid.Column="3" Text="Chance" Style="{StaticResource Text.Label}" HorizontalAlignment="Right"
+                                                       ToolTip="Quantas vezes mais o jogo trava durante a situação do que fora dela. Perto de 1×: não faz diferença. A partir de 2× com uma boa parte das travadas, vira causa provável (em âmbar)." />
+                                            <TextBlock Grid.Column="4" Text="Na travada · resto" Style="{StaticResource Text.Label}" HorizontalAlignment="Right"
+                                                       ToolTip="Valor médio da medida no segundo das travadas e nos segundos sem travada. Ex.: disco 60 · 4 MB/s = nas travadas o jogo lia 15 vezes mais do disco." />
+                                        </Grid>
+                                        <Rectangle Height="1" Fill="{StaticResource LineBrush}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding Rows}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:CauseRow}">
+                                                    <Grid ToolTip="{Binding Hint}" Background="Transparent">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="130" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock x:Name="Name" Text="{Binding Name}" Style="{StaticResource Cell}" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Time}" Style="{StaticResource Cell}" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Share}" Style="{StaticResource Cell}" HorizontalAlignment="Right" />
+                                                        <TextBlock x:Name="Ratio" Grid.Column="3" Text="{Binding Ratio}" Style="{StaticResource Cell}" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="4" Text="{Binding Values}" Style="{StaticResource Cell}" HorizontalAlignment="Right" />
+                                                    </Grid>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Likely}" Value="True">
+                                                            <Setter TargetName="Name" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                            <Setter TargetName="Ratio" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                            <Setter TargetName="Name" Property="FontWeight" Value="SemiBold" />
+                                                            <Setter TargetName="Ratio" Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Style="{StaticResource Panel}" Padding="14,24"
+                            Visibility="{Binding HasItems, ElementName=DiagnosesList, Converter={x:Static vm:NoItemsToVisibilityConverter.Instance}}">
+                        <TextBlock Style="{StaticResource Text.Empty}" Margin="0"
+                                   Text="Ainda sem diagnóstico. Ele começa nas partidas jogadas a partir desta versão, com o Folga como administrador: depois de uma partida de pelo menos 2 minutos, aparece aqui de onde vêm as travadas." />
+                    </Border>
+                </Grid>
+
                 <TextBlock Text="Partidas" Style="{StaticResource Text.Section}" Margin="0,8,0,10"
                            ToolTip="Todas as partidas medidas, da mais nova para a mais velha (até 300). Ficam em %LocalAppData%\Folga\sessions.json." />
 

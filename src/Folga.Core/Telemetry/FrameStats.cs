@@ -36,6 +36,17 @@ public sealed class FrameStats
         get { lock (_gate) return _frames.Count; }
     }
 
+    /// <summary>Travadas desde que a cadeia apareceu (lido a cada segundo pelo diagnóstico).</summary>
+    public long Hitches
+    {
+        get { lock (_gate) return _session.Hitches; }
+    }
+
+    public long SessionFrames
+    {
+        get { lock (_gate) return _session.Frames; }
+    }
+
     /// <summary>Resumo de todos os quadros desde que a cadeia apareceu (a sessão inteira, não só 60 s).</summary>
     public FrameSummary Session()
     {

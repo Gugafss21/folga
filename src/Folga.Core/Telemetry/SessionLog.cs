@@ -21,6 +21,8 @@ public sealed class SessionRecord
     public double? PingAverageMs { get; set; }
     public int? PingMaxMs { get; set; }
     public double? GpuAveragePercent { get; set; }
+    /// <summary>Diagnóstico das travadas (null em partidas medidas antes da v0.9 ou sem leitura do PC).</summary>
+    public List<HitchFactor>? HitchFactors { get; set; }
 
     public double Minutes => (End - Start).TotalMinutes;
     public double HitchesPerMinute => FrameMs > 0 ? Hitches / (FrameMs / 60_000) : 0;
@@ -72,6 +74,7 @@ public sealed class SessionLog
             AverageFps = m.Frames.AverageFps, OnePercentLow = m.Frames.OnePercentLow, PointOnePercentLow = m.Frames.PointOnePercentLow,
             Hitches = m.Frames.Hitches,
             PingAverageMs = m.PingAverageMs, PingMaxMs = m.PingMaxMs, GpuAveragePercent = m.GpuAveragePercent,
+            HitchFactors = m.HitchFactors?.ToList(),
         };
         lock (_gate)
         {

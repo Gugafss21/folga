@@ -29,6 +29,9 @@ public sealed class FrameTimeHistogram
         if (frameTimeMs > HitchMs) _hitches++;
     }
 
+    public long Frames => _frames;
+    public long Hitches => _hitches;
+
     public FrameSummary Summary() => new(
         _frames, _totalMs,
         _totalMs > 0 ? 1000 * _frames / _totalMs : null,

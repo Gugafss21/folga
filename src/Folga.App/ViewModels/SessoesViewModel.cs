@@ -13,6 +13,11 @@ public sealed record MetricRow(string Name, string Hint, string Boost, string Pl
 
 public sealed record ComparisonCard(string Game, IReadOnlyList<MetricRow> Rows, string Footer, string? Missing);
 
+/// <summary>Uma causa no diagnóstico das travadas: quanto do tempo, quanto das travadas e quantas vezes mais trava.</summary>
+public sealed record CauseRow(string Name, string Hint, string Time, string Share, string Ratio, string Values, bool Likely);
+
+public sealed record DiagnosisCard(string Game, string Verdict, string? Advice, IReadOnlyList<CauseRow> Rows, string Footer);
+
 public sealed record SessionRow(Guid Id, string When, string Game, string Mode, string Duration, string Fps, string Low, string PointOneLow,
     string Hitches, string Ping, string Gpu);
 
@@ -34,6 +39,7 @@ public sealed partial class SessoesViewModel : ObservableObject
     }
 
     public ObservableCollection<ComparisonCard> Cards { get; } = [];
+    public ObservableCollection<DiagnosisCard> Diagnoses { get; } = [];
     public ObservableCollection<SessionRow> Sessions { get; } = [];
 
     [ObservableProperty] private bool _measureOnly;
@@ -60,6 +66,9 @@ public sealed partial class SessoesViewModel : ObservableObject
         var records = _services.Sessions.All;
         Cards.Clear();
         foreach (var c in SessionLog.Compare(records)) Cards.Add(Card(c));
+        Diagnoses.Clear();
+        foreach (var game in records.Where(r => r.HitchFactors is { Count: > 0 }).GroupBy(r => r.Game, StringComparer.OrdinalIgnoreCase))
+            Diagnoses.Add(Diagnosis(game.Key, game.ToList()));
         Sessions.Clear();
         foreach (var r in records.OrderByDescending(r => r.Start)) Sessions.Add(Row(r));
     }
@@ -87,6 +96,88 @@ public sealed partial class SessoesViewModel : ObservableObject
             : null;
         return new ComparisonCard(c.Game, rows, footer, missing);
     }
+
+    /// <summary>Nome, explicação, unidade, conversão do valor guardado e o que fazer, por causa.</summary>
+    private sealed record CauseText(string Name, string Hint, string Unit, Func<double, double> Scale, string Format, string Advice);
+
+    private static readonly Dictionary<HitchCause, CauseText> Causes = new()
+    {
+        [HitchCause.GameDiskRead] = new("Jogo lendo do disco",
+            $"Segundos em que os processos do jogo leram mais de {HitchProfiler.DiskThresholdMBps:0} MB/s do disco: carregando área nova, texturas ou mapa (streaming). Os números da direita são a leitura média na hora das travadas e no resto do tempo.",
+            "MB/s", v => v, "0",
+            "O jogo trava quando carrega dados do disco. Ajuda: instalar o jogo num SSD (de preferência NVMe), baixar Texturas ou a distância de visão um nível, e não deixar Steam, OneDrive ou antivírus mexendo no mesmo disco durante a partida."),
+        [HitchCause.HardFaults] = new("Windows buscando memória no disco",
+            $"Segundos em que o Windows leu mais de {HitchProfiler.HardFaultThresholdMBps:0} MB/s do disco para trazer de volta à RAM partes de programas que tinham ido para o arquivo de paginação (falhas de página graves, do PC inteiro). É o sinal mais direto de RAM curta.",
+            "MB/s", v => v, "0",
+            "Falta RAM: o Windows tira partes do jogo da memória e precisa buscá-las de volta no disco. Ajuda: fechar o navegador ou deixar poucas abas, dar um orçamento de RAM ao navegador na tela Segundo plano (coluna RAM MB) e ligar a limpeza da standby list ali mesmo."),
+        [HitchCause.LowRam] = new("Pouca RAM disponível",
+            "Segundos com menos de 10% da RAM do PC disponível (no mínimo 1 GB). Disponível = livre + cache que o Windows pode reaproveitar na hora. Os números da direita são a RAM disponível média na hora das travadas e no resto do tempo.",
+            "GB", v => v / 1024, "0.0",
+            "A RAM está quase toda ocupada quando trava. Ajuda: fechar o navegador ou deixar poucas abas e dar um orçamento de RAM aos apps de fundo na tela Segundo plano (coluna RAM MB)."),
+        [HitchCause.VramFull] = new("Memória da placa de vídeo cheia",
+            $"Segundos com a memória da placa de vídeo (VRAM) acima de {HitchProfiler.VramThresholdPercent:0}% ocupada, lida pelo driver. Inclui o que outros programas usam da placa, como navegador e Discord.",
+            "%", v => v, "0",
+            "A memória da placa de vídeo está cheia e as texturas transbordam para a RAM, o que trava. Ajuda: baixar Texturas um nível no jogo (é a opção que mais usa VRAM) e fechar o que usa a placa junto, como vídeo no navegador ou Discord com aceleração de hardware."),
+        [HitchCause.CpuFull] = new("Processador no limite",
+            $"Segundos com o processador inteiro (todas as threads) acima de {HitchProfiler.CpuThresholdPercent:0}% de uso.",
+            "%", v => v, "0",
+            "O processador está no limite quando trava. Ajuda: limitar o FPS um pouco abaixo da média (no jogo ou no Painel de Controle da NVIDIA). Sobra folga para os picos e os quadros ficam mais regulares."),
+        [HitchCause.OtherCpu] = new("Outros programas usando CPU",
+            $"Segundos em que os programas que não são o jogo usaram, somados, mais de {HitchProfiler.OtherCpuThresholdPercent:0}% do processador inteiro.",
+            "%", v => v, "0",
+            "Outros programas disputam o processador nos momentos de travada. Ajuda: na tela Segundo plano, segure ou congele os apps que aparecem usando CPU durante o jogo. Atualizações (Windows, Steam, navegador) são as suspeitas comuns."),
+        [HitchCause.AfterLoading] = new("Logo depois de carregar",
+            "O primeiro minuto da partida e o primeiro minuto depois de cada carregamento (o jogo ficou mais de 2 s sem desenhar).",
+            "", v => v, "0",
+            "As travadas se concentram logo depois de carregar: é o jogo compilando shaders ou montando o mapa. Costuma melhorar nas partidas seguintes no mesmo mapa. Ajuda: no Painel de Controle da NVIDIA, deixar o Tamanho do cache do sombreador em 10 GB ou Ilimitado, e não limpar o cache do driver."),
+    };
+
+    private static DiagnosisCard Diagnosis(string game, IReadOnlyList<SessionRecord> sessions)
+    {
+        var factors = HitchVerdict.Combine(sessions.Select(s => s.HitchFactors));
+        var hitches = factors.Max(f => f.Hitches);
+        var minutes = factors.Max(f => f.Seconds) / 60.0;
+        var likely = HitchVerdict.Likely(factors);
+
+        string verdict;
+        string? advice = null;
+        if (hitches < HitchVerdict.MinHitches)
+            verdict = $"Poucas travadas até agora ({hitches}) para apontar uma causa. Jogue mais partidas: o diagnóstico junta todas as deste jogo.";
+        else if (likely.Count == 0)
+            verdict = "As travadas não se concentram em nenhuma das situações medidas. Podem vir do próprio jogo (servidor, física, áudio) ou de algo que o Folga não mede, como driver.";
+        else
+        {
+            var top = likely[0];
+            verdict = $"Causa provável: {Lower(Causes[top.Cause].Name)}. {Percent(top.ShareOfHitches)} das travadas aconteceram nesses momentos, que são {Percent(top.ShareOfTime)} do tempo de jogo ({(top.Ratio is double.PositiveInfinity ? "nenhuma travada fora deles" : $"{RatioText(top.Ratio)} mais travadas que no resto")})."
+                + (likely.Count > 1 ? $" Também pesa: {string.Join(", ", likely.Skip(1).Select(f => Lower(Causes[f.Cause].Name)))}." : "");
+            advice = Causes[top.Cause].Advice;
+        }
+
+        var rows = factors
+            .OrderByDescending(f => HitchVerdict.IsLikely(f)).ThenByDescending(f => f.ShareOfHitches)
+            .Select(f =>
+            {
+                var text = Causes[f.Cause];
+                string Value(double? v) => v is { } x ? text.Scale(x).ToString(text.Format, CultureInfo.CurrentCulture) : "—";
+                var values = text.Unit.Length == 0 ? "" : $"{Value(f.AverageAtHitch)} · {Value(f.AverageCalm)} {text.Unit}";
+                return new CauseRow(text.Name, text.Hint, Percent(f.ShareOfTime), Percent(f.ShareOfHitches), RatioText(f.Ratio), values, HitchVerdict.IsLikely(f));
+            })
+            .ToList();
+        var footer = $"{sessions.Count} {(sessions.Count == 1 ? "partida" : "partidas")} ({Duration(minutes)} jogando)  ·  {hitches} {(hitches == 1 ? "travada" : "travadas")}";
+        return new DiagnosisCard(game, verdict, advice, rows, footer);
+    }
+
+    /// <summary>Nome no meio da frase: só a primeira letra muda, e "Windows" fica como está.</summary>
+    private static string Lower(string name) => name.StartsWith("Windows", StringComparison.Ordinal) ? name : char.ToLowerInvariant(name[0]) + name[1..];
+
+    private static string Percent(double share) => (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
+
+    private static string RatioText(double? ratio) => ratio switch
+    {
+        null => "—",
+        double.PositiveInfinity => "só nela",
+        { } r => r.ToString(r < 10 ? "0.0" : "0", CultureInfo.CurrentCulture) + "×",
+    };
 
     private static MetricRow Metric(string name, string hint, double? boost, double? plain, bool higherIsBetter, string format)
     {

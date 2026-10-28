@@ -96,6 +96,15 @@ internal static unsafe partial class Kernel32
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX status);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetProcessIoCounters(ProcessHandle process, out IO_COUNTERS counters);
+
+    /// <summary>Tempos somados de todos os processadores, em unidades de 100 ns; kernel inclui o ocioso.</summary>
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetSystemTimes(out long idle, out long kernel, out long user);
 }
 
 internal static unsafe partial class Ntdll
@@ -251,6 +260,17 @@ internal struct MEMORYSTATUSEX
     public ulong ullTotalVirtual;
     public ulong ullAvailVirtual;
     public ulong ullAvailExtendedVirtual;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct IO_COUNTERS
+{
+    public ulong ReadOperationCount;
+    public ulong WriteOperationCount;
+    public ulong OtherOperationCount;
+    public ulong ReadTransferCount;
+    public ulong WriteTransferCount;
+    public ulong OtherTransferCount;
 }
 
 [StructLayout(LayoutKind.Sequential)]

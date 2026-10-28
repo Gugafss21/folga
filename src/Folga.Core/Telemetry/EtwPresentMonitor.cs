@@ -71,6 +71,15 @@ public sealed class EtwPresentMonitor : IDisposable
         }
     }
 
+    /// <summary>Travadas da cadeia que mais desenhou (a mesma do resumo da partida).</summary>
+    public long Hitches
+    {
+        get
+        {
+            lock (_gate) return _bySwapChain.Values.OrderByDescending(s => s.SessionFrames).Select(s => s.Hitches).FirstOrDefault();
+        }
+    }
+
     /// <summary>A partida inteira da cadeia que mais desenhou (no fim, o jogo já pode ter parado de desenhar).</summary>
     public FrameSummary SessionSummary()
     {
