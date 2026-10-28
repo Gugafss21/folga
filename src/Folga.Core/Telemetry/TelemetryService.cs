@@ -130,6 +130,12 @@ public sealed class TelemetryService : IDisposable
         }
     }
 
+    /// <summary>Ficha da placa (clocks, energia, PCIe) para a tela Hardware; null fora da NVIDIA.</summary>
+    public GpuDetails? GpuDetails()
+    {
+        lock (_gpuGate) return _gpu.Details();
+    }
+
     private GpuSnapshot? ReadGpu()
     {
         lock (_gpuGate) return _gpu.Read();

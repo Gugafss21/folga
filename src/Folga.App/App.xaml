@@ -32,6 +32,12 @@
             <DataTemplate DataType="{x:Type vm:SessoesViewModel}">
                 <views:SessoesView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:HardwareViewModel}">
+                <views:HardwareView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:LimpezaViewModel}">
+                <views:LimpezaView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:SistemaViewModel}">
                 <views:SistemaView />
             </DataTemplate>

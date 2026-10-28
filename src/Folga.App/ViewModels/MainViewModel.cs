@@ -21,6 +21,8 @@ public sealed partial class MainViewModel : ObservableObject
         Rede = new RedeViewModel(services);
         Overlay = new OverlayViewModel(services);
         Sessoes = new SessoesViewModel(services);
+        Hardware = new HardwareViewModel(services.Telemetry.GpuDetails);
+        Limpeza = new LimpezaViewModel(() => services.Engine.GetState().SessionActive);
         Sistema = new SistemaViewModel(services);
         Pages =
         [
@@ -30,6 +32,8 @@ public sealed partial class MainViewModel : ObservableObject
             new("Rede", Rede, "Quem está usando download e upload agora, e o que o Folga faz na rede durante o jogo."),
             new("Overlay", Overlay, "Os números do jogo desenhados por cima do jogo pelo RTSS: o que aparece, nomes, tamanho, cores e canto."),
             new("Sessões", Sessoes, "Cada partida medida (FPS, 1% low, travadas, ping) e a comparação com boost contra sem boost (modo Só medir), para ver o que o Folga muda no seu PC."),
+            new("Hardware", Hardware, "A ficha do PC lida do Windows: processador, placa-mãe, memória (velocidade, tensão e CL anunciado), placa de vídeo (clocks, energia, PCIe), discos e Windows, com o padrão de fábrica ao lado."),
+            new("Limpeza", Limpeza, "Libera espaço no disco apagando só caches e temporários do Windows e dos drivers, nunca arquivos pessoais."),
             new("Sistema", Sistema, "Ajustes do próprio Windows: arquivo de paginação, memória compactada, Modo de Jogo, otimizações de janela, capturas do Game Bar, agendamento de GPU e plano de energia durante o jogo. Avisa quando precisa reiniciar."),
         ];
         _selectedPage = Pages[0];
@@ -58,6 +62,8 @@ public sealed partial class MainViewModel : ObservableObject
     public RedeViewModel Rede { get; }
     public OverlayViewModel Overlay { get; }
     public SessoesViewModel Sessoes { get; }
+    public HardwareViewModel Hardware { get; }
+    public LimpezaViewModel Limpeza { get; }
     public SistemaViewModel Sistema { get; }
     public IReadOnlyList<NavPage> Pages { get; }
 
@@ -78,6 +84,8 @@ public sealed partial class MainViewModel : ObservableObject
         Agora.IsVisible = WindowVisible && SelectedPage.ViewModel == Agora;
         SegundoPlano.IsVisible = WindowVisible && SelectedPage.ViewModel == SegundoPlano;
         Rede.IsVisible = WindowVisible && SelectedPage.ViewModel == Rede;
+        Hardware.IsVisible = WindowVisible && SelectedPage.ViewModel == Hardware;
+        Limpeza.IsVisible = WindowVisible && SelectedPage.ViewModel == Limpeza;
     }
 
     [RelayCommand]

@@ -1,0 +1,58 @@
+<UserControl x:Class="Folga.App.Views.LimpezaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:LimpezaViewModel}">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="Limpar selecionados" Style="{StaticResource Button.Plain}" Command="{Binding CleanCommand}" Margin="8,0,0,0"
+                    ToolTip="Apaga o que está marcado, depois de pedir confirmação. Os arquivos não vão para a Lixeira. Arquivos em uso são pulados, e com um jogo aberto nada é apagado." />
+            <Button DockPanel.Dock="Right" Content="Analisar de novo" Style="{StaticResource Button.Plain}" Command="{Binding ScanCommand}"
+                    ToolTip="Mede de novo quanto cada categoria ocupa agora. Só lê; não apaga nada." />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Total}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" Margin="0,0,16,0" />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+            <StackPanel Margin="0,0,16,0">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="Limpeza" Style="{StaticResource Text.Headline}" />
+                    <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Text="Libera espaço apagando só caches e temporários do Windows e dos drivers. Lixeira, Downloads, Documentos, Área de Trabalho, Imagens e qualquer pasta sua nunca entram, e atalhos de pasta não são seguidos. Arquivos em uso ficam." />
+                </StackPanel>
+
+                <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,0,0,12"
+                        Visibility="{Binding NeedsAdmin, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Text.Body}" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap"
+                               Text="O Folga não está como administrador: as categorias do Windows (Temp do Windows, Windows Update, relatórios, despejos de memória) ficam bloqueadas. As do seu usuário dá para limpar." />
+                </Border>
+
+                <Border Style="{StaticResource Panel}" Padding="14,12">
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CleanupRow}">
+                                <Grid Margin="0,4" ToolTip="{Binding Hint}" Background="Transparent">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="220" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <CheckBox IsChecked="{Binding Selected}" IsEnabled="{Binding CanSelect}" Content="{Binding Name}" ToolTip="{Binding Hint}" />
+                                        <TextBlock Text="{Binding Blocked}" Style="{StaticResource Text.Label}" Foreground="{StaticResource AccentBrush}" Margin="28,2,0,0"
+                                                   Visibility="{Binding Blocked, Converter={x:Static vm:NotNullToVisibilityConverter.Instance}}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Size}" Style="{StaticResource Text.Body}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                               Typography.NumeralAlignment="Tabular" Margin="0,2,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

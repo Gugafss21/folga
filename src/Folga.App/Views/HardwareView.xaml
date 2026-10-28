@@ -1,0 +1,63 @@
+<UserControl x:Class="Folga.App.Views.HardwareView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Folga.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:HardwareViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="Cell" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Margem à direita: a barra de rolagem do Fluent fica por cima do conteúdo. -->
+        <StackPanel Margin="0,0,16,0">
+            <StackPanel Margin="0,0,0,16">
+                <TextBlock Text="Hardware" Style="{StaticResource Text.Headline}" />
+                <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0" TextWrapping="Wrap"
+                           Text="A ficha do seu PC, lida do próprio Windows, sem instalar driver. Na coluna da direita fica o padrão de fábrica quando existe; em âmbar, o que está diferente dele. Clocks, consumo, temperatura e espaço se atualizam sozinhos." />
+                <TextBlock Text="{Binding Status}" Style="{StaticResource Text.Label}" Margin="0,6,0,0" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding Sections}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:HardwareSection}">
+                        <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Text.Section}" Margin="0,0,0,8" ToolTip="{Binding Hint}" />
+                                <ItemsControl ItemsSource="{Binding Rows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:HardwareRow}">
+                                            <Grid ToolTip="{Binding Hint}" Background="Transparent">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="190" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="170" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource Cell}" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <TextBlock x:Name="Value" Grid.Column="1" Text="{Binding Value}" Style="{StaticResource Cell}" Foreground="{StaticResource TextPrimaryBrush}" />
+                                                <TextBlock x:Name="Original" Grid.Column="2" Text="{Binding Original}" Style="{StaticResource Cell}" HorizontalAlignment="Right"
+                                                           Foreground="{StaticResource TextTertiaryBrush}" />
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Changed}" Value="True">
+                                                    <Setter TargetName="Value" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                    <Setter TargetName="Value" Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
